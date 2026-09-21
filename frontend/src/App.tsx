@@ -1,0 +1,33 @@
+import { useEffect, useState } from 'react'
+
+type Health = { status: string; database: boolean; rails: string }
+
+function App() {
+  const [health, setHealth] = useState<Health | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json() as Promise<Health>
+      })
+      .then(setHealth)
+      .catch((err: Error) => setError(err.message))
+  }, [])
+
+  return (
+    <main>
+      <h1>Salary Management</h1>
+      {error && <p>API unreachable: {error}</p>}
+      {!error && !health && <p>Checking API…</p>}
+      {health && (
+        <p>
+          API {health.status} · Rails {health.rails} · database {health.database ? 'connected' : 'down'}
+        </p>
+      )}
+    </main>
+  )
+}
+
+export default App

@@ -1,0 +1,26 @@
+# Rails (backend)
+/backend/log/*
+/backend/tmp/*
+/backend/storage/*
+/backend/public/assets
+/backend/.bundle
+/backend/vendor/bundle
+/backend/config/master.key
+/backend/config/credentials/*.key
+!/backend/log/.keep
+!/backend/tmp/.keep
+!/backend/storage/.keep
+
+# React (frontend)
+/frontend/node_modules
+/frontend/dist
+/frontend/*.local
+
+# Env and editor files
+.env
+.env.*
+!.env.example
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
