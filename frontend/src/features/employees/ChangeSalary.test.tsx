@@ -119,7 +119,7 @@ describe('changing an employee\'s salary', () => {
     expect(await screen.findByText('$110,000', { selector: 'p' })).toBeInTheDocument() // the current salary
     expect(await screen.findByRole('table', { name: 'Salary history' })).toBeInTheDocument()
     expect(screen.getByText('Annual review')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Salary updated')
+    expect(screen.getByText('Salary updated').closest('[role="status"]')).not.toBeNull() // announced to screen readers
   })
 
   it('can change the currency along with the amount', async () => {

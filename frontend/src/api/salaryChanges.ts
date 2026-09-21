@@ -1,4 +1,5 @@
 import { apiFetch } from './client'
+import type { Employee } from './employees'
 
 export type SalaryAmount = { amount: string; currency: string }
 
@@ -16,3 +17,14 @@ export type SalaryChange = {
 /** The history, newest first. */
 export const listSalaryChanges = (employeeId: string | number) =>
   apiFetch<{ data: SalaryChange[] }>(`/api/employees/${employeeId}/salary_changes`).then((body) => body.data)
+
+export type SalaryChangeRequest = {
+  salary_change: { new_amount: string; currency_code: string; effective_on: string; reason: string }
+}
+
+/** Records a change. The response carries the updated employee, so the page can refresh in one round trip. */
+export const createSalaryChange = (employeeId: string | number, request: SalaryChangeRequest) =>
+  apiFetch<{ data: SalaryChange; employee: Employee }>(`/api/employees/${employeeId}/salary_changes`, {
+    method: 'POST',
+    json: request,
+  })

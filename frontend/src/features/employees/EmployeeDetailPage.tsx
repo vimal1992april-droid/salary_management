@@ -5,11 +5,14 @@ import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Grid from '@mui/material/Grid'
 import Paper from '@mui/material/Paper'
+import Snackbar from '@mui/material/Snackbar'
 import Typography from '@mui/material/Typography'
+import { useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import type { Employee } from '../../api/employees'
 import { formatDate, formatMoney } from '../../lib/format'
+import ChangeSalaryDialog from './ChangeSalaryDialog'
 import SalaryHistory from './SalaryHistory'
 import { useEmployee } from './useEmployee'
 
@@ -77,6 +80,8 @@ function Profile({ employee }: { employee: Employee }) {
 export default function EmployeeDetailPage() {
   const { id = '' } = useParams()
   const employee = useEmployee(id)
+  const [changingSalary, setChangingSalary] = useState(false)
+  const [notice, setNotice] = useState('')
 
   if (employee.isPending) {
     return (
@@ -129,6 +134,10 @@ export default function EmployeeDetailPage() {
           color={data.status === 'active' ? 'success' : 'default'}
           variant="outlined"
         />
+        <Box sx={{ flexGrow: 1 }} />
+        <Button variant="contained" onClick={() => setChangingSalary(true)}>
+          Change salary
+        </Button>
       </Box>
 
       <Profile employee={data} />
@@ -139,6 +148,24 @@ export default function EmployeeDetailPage() {
         </Typography>
         <SalaryHistory employeeId={id} />
       </Paper>
+
+      {changingSalary && (
+        <ChangeSalaryDialog
+          employee={data}
+          onClose={() => setChangingSalary(false)}
+          onSaved={() => {
+            setChangingSalary(false)
+            setNotice('Salary updated')
+          }}
+        />
+      )}
+      <Snackbar
+        open={notice !== ''}
+        message={notice}
+        autoHideDuration={5000}
+        onClose={() => setNotice('')}
+        slotProps={{ content: { role: 'status' } }}
+      />
     </>
   )
 }
