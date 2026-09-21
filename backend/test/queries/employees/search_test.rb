@@ -187,6 +187,16 @@ class Employees::SearchTest < ActiveSupport::TestCase
     assert_equal 0, search.total_pages
   end
 
+  test "can return every match at once when pagination is turned off, as an export needs" do
+    create_list(:employee, 7)
+    create(:employee, status: :inactive)
+
+    everything = search(status: "active", per_page: 2, paginate: false)
+
+    assert_equal 7, everything.records.size
+    assert_equal 7, everything.total
+  end
+
   # --- performance ----------------------------------------------------------
 
   test "costs the same number of queries however many employees are on the page" do
