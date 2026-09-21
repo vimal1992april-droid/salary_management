@@ -7,7 +7,7 @@ module Admin
     protect_from_forgery with: :exception
     layout "admin"
 
-    helper AdminHelper, AdminChartHelper
+    helper AdminHelper, AdminChartHelper, AdminAssetsHelper, AdminIconHelper, AdminNavHelper
 
     before_action :require_admin
     helper_method :current_admin

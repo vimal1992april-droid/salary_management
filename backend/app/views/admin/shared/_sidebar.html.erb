@@ -1,0 +1,34 @@
+<aside id="sidebar" class="sidebar" aria-label="Main navigation">
+  <a class="brand" href="<%= admin_root_path %>">
+    <span class="brand-mark" aria-hidden="true">S</span>
+    <span class="brand-name">Salary admin</span>
+  </a>
+
+  <nav class="nav">
+    <div class="nav-heading">Overview</div>
+    <%= sidebar_link "Dashboard", admin_root_path, icon: :grid, current: on_dashboard? %>
+
+    <div class="nav-heading">Data</div>
+    <%= sidebar_link "All tables", admin_tables_path, icon: :database, current: on_table_list? %>
+    <div class="nav-sub">
+      <% Admin::Table.all.each do |table| %>
+        <%= sidebar_link table.title, admin_table_path(table.name), icon: :table, current: on_table?(table.name) %>
+      <% end %>
+    </div>
+
+    <div class="nav-heading">Monitoring</div>
+    <%= sidebar_link "API monitor", admin_api_monitor_path, icon: :activity, current: on_api_monitor? %>
+    <%= sidebar_link "Calls", admin_api_requests_path, icon: :list, current: on_api_requests? %>
+  </nav>
+
+  <div class="account">
+    <span class="avatar" aria-hidden="true"><%= initial_of(current_admin.email) %></span>
+    <div class="account-who">
+      <span class="account-label">Signed in as</span>
+      <span class="account-email"><%= current_admin.email %></span>
+    </div>
+    <%= button_to admin_logout_path, class: "icon-button signout", title: "Sign out" do %>
+      <%= admin_icon(:log_out) %><span>Sign out</span>
+    <% end %>
+  </div>
+</aside>

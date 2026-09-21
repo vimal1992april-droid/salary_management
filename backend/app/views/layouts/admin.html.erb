@@ -4,26 +4,54 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="color-scheme" content="light dark">
     <title><%= [content_for(:title), "Salary admin"].compact_blank.join(" - ") %></title>
     <%= csrf_meta_tags %>
-    <%= render "admin/shared/styles" %>
+    <%# Applies the saved theme (or the system's) before anything is drawn, so a dark page does not flash white. %>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('admin-theme');
+          if (theme !== 'light' && theme !== 'dark') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (error) { /* storage blocked: the stylesheet follows the system instead */ }
+      })();
+    </script>
+    <link rel="preload" href="/admin-assets/fonts/montserrat-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="<%= admin_asset_path("admin.css") %>">
+    <script src="<%= admin_asset_path("admin.js") %>" defer></script>
   </head>
-  <body>
+  <body class="<%= current_admin ? "with-sidebar" : "signed-out" %>">
+    <a class="skip-link" href="#main">Skip to content</a>
+
     <% if current_admin %>
-      <header class="topbar">
-        <a class="brand" href="<%= admin_root_path %>">Salary admin</a>
-        <nav>
-          <a href="<%= admin_root_path %>">Dashboard</a>
-          <a href="<%= admin_tables_path %>">Data</a>
-          <a href="<%= admin_api_monitor_path %>">API monitor</a>
-        </nav>
-        <span class="spacer"></span>
-        <span class="who"><%= current_admin.email %></span>
-        <%= button_to "Sign out", admin_logout_path, class: "link-button" %>
-      </header>
+      <div class="app">
+        <%= render "admin/shared/sidebar" %>
+        <div class="sidebar-backdrop" data-sidebar-backdrop></div>
+
+        <div class="content">
+          <header class="topbar">
+            <button type="button" class="icon-button menu-button" data-sidebar-toggle aria-controls="sidebar" aria-expanded="false" aria-label="Open the menu">
+              <%= admin_icon(:menu) %>
+            </button>
+            <span class="topbar-title"><%= content_for(:title) %></span>
+            <span class="spacer"></span>
+            <span class="env-badge env-<%= Rails.env %>" title="The environment this server is running in"><%= Rails.env %></span>
+            <%= render "admin/shared/theme_toggle" %>
+          </header>
+
+          <main id="main" class="page" tabindex="-1">
+            <%= yield %>
+          </main>
+        </div>
+      </div>
+    <% else %>
+      <div class="auth-topbar"><%= render "admin/shared/theme_toggle" %></div>
+      <main id="main" class="auth-main" tabindex="-1">
+        <%= yield %>
+      </main>
     <% end %>
-    <main class="page">
-      <%= yield %>
-    </main>
   </body>
 </html>

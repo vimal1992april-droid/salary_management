@@ -1,2 +1,5 @@
 # Text files use LF in the repository and in every checkout, so a script edited on Windows still runs in the Linux container.
 * text=auto eol=lf
+# Binary files are never converted.
+*.woff2 binary
+*.png binary

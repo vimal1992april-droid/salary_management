@@ -26,7 +26,8 @@ test('an administrator signs in, browses the data and the graphs, and reads ever
   // --- Signed out, /admin asks for the administrator's login, and the HR login does not open it ------------------
   await page.goto('/admin')
   await expect(page).toHaveURL(/\/admin\/login$/)
-  await expect(page.getByRole('heading', { name: 'Salary admin' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+  await expect(page.locator('.auth-brand')).toContainText('Salary admin')
   await shot(page, 'admin-01-sign-in', false)
 
   await page.getByLabel('Email').fill(hrEmail)
@@ -47,13 +48,13 @@ test('an administrator signs in, browses the data and the graphs, and reads ever
   await shot(page, 'admin-02-dashboard')
 
   // --- All the data, table by table -------------------------------------------------------------------------------------
-  await page.getByRole('navigation').getByRole('link', { name: 'Data' }).click()
+  await page.getByRole('link', { name: 'All tables' }).click()
   await expect(page.getByRole('heading', { name: 'Data' })).toBeVisible()
   await expect(page.locator('table.tables tbody tr')).toHaveCount(8)
   await expect(page.locator('tr', { hasText: 'Employees' }).locator('td.count')).toHaveText('10,000')
   await shot(page, 'admin-03-data')
 
-  await page.getByRole('link', { name: 'Employees', exact: true }).click()
+  await page.getByRole('main').getByRole('link', { name: 'Employees', exact: true }).click()
   await page.getByRole('searchbox', { name: 'Search' }).fill('E00500')
   await page.getByRole('button', { name: 'Search' }).click()
   await expect(page.locator('tbody tr')).toHaveCount(1)
