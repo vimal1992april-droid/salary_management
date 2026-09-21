@@ -63,19 +63,21 @@ test suite (249 tests) runs in about 4 s.
 
 ## What was measured and left alone
 
-`EXPLAIN ANALYZE` on the queries the directory and insights actually run, over 10,000 rows (the `employees`
-table plus its indexes is 3 MB, so it lives entirely in memory):
+`EXPLAIN (ANALYZE)` on SQL equivalent to what the directory and insights run, over 10,000 rows (the `employees`
+table plus its indexes is 3 MB, so it lives entirely in memory). Each figure is the best of five runs, to leave
+out cold-cache noise; this is database time only, so it is smaller than the endpoint timings above.
 
 | Query | Plan | Execution time |
 |---|---|---:|
-| Text search, `ILIKE` on four columns | sequential scan, top-N heapsort | 17 ms |
-| First page ordered by name | sequential scan, top-N heapsort | 2.4 ms |
-| Filters + order by hire date | bitmap index scan on `country_id`, top-N heapsort | ~1 ms |
-| Sort by USD salary (join currencies) | hash join, top-N heapsort | ~15 ms |
-| Pay stats by country | hash joins, sort, group aggregate | ~20 ms |
+| Text search, `ILIKE` on four columns | sequential scan, top-N heapsort | 15.2 ms |
+| First page ordered by name | sequential scan, top-N heapsort | 2.0 ms |
+| Filters + order by hire date | bitmap index scan on `country_id`, top-N heapsort | 0.7 ms |
+| Sort by USD salary (join currencies) | hash join, top-N heapsort | 4.7 ms |
+| Pay stats by country (percentiles) | hash joins, sort, group aggregate | 9.1 ms |
+| Outlier detection (the whole CTE) | grouped percentiles, join back | 15.2 ms |
 
 - **No trigram (`pg_trgm`) index for search.** A sequential scan of 10,000 rows for a four-column `ILIKE` costs
-  17 ms, so an index would save little and add a Postgres extension to manage. It becomes worthwhile at roughly a
+  15 ms, so an index would save little and add a Postgres extension to manage. It becomes worthwhile at roughly a
   hundred times the data (about a million rows). At that point the change is one migration: a GIN trigram index on the
   concatenated searchable columns.
 - **No index on `status` or on `(country_id, salary_amount)`.** The planner already uses the `country_id` index where
