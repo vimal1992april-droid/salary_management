@@ -51,6 +51,26 @@ Other timings, measured in the same environment: `bin/rails db:seed` takes about
 about 4 s when it also adds their salary history (both include about 2 s of Rails boot); the backend test suite
 (249 tests) runs in about 5 s, or about 13 s in a fresh container.
 
+## The cost of the API monitor
+
+The admin panel's [API monitor](admin.md) records every call to `/api`, which is one INSERT plus parsing and filtering
+the payloads. The same benchmark (60 runs each, the development server above) with recording off and on:
+
+| Endpoint | p50 off | p50 on | p95 off | p95 on |
+|---|---:|---:|---:|---:|
+| Directory, first page | 16 | 24 | 28 | 39 |
+| Directory, text search ("priya") | 45 | 53 | 50 | 57 |
+| Directory, sort by salary (USD), 100 per page | 28 | 39 | 31 | 44 |
+| Lookups | 10 | 16 | 12 | 21 |
+| Insights, overview | 17 | 23 | 18 | 26 |
+| Insights, outliers | 31 | 37 | 34 | 42 |
+| CSV export, all employees | 627 | 644 | 684 | 687 |
+
+So recording adds about **6 to 11 ms** to a call, and the largest p95 of an interactive endpoint with it on is 60 ms
+(the two-word directory search, up from 48). A CSV download is not stored, only described, so it costs almost
+nothing extra. The recording is synchronous; a background job would remove most of that cost but this app has no
+job queue. `API_MONITOR=false` removes it entirely.
+
 ## What makes it fast
 
 - **Aggregation happens in PostgreSQL.** Percentiles, sums, histograms and outlier fences are one SQL statement

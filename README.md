@@ -19,6 +19,12 @@ the HR team's Excel files: the HR Manager can find and maintain salary data, and
 |---|---|
 | ![Changing a salary](docs/screenshots/change-salary.png) | ![An employee's salary history](docs/screenshots/salary-history.png) |
 
+And the administrator's panel at `/admin` ([docs/admin.md](docs/admin.md)):
+
+| Dashboard | API monitor |
+|---|---|
+| ![The admin dashboard](docs/screenshots/admin-dashboard.png) | ![The API monitor](docs/screenshots/admin-api-monitor.png) |
+
 ## What it does
 
 For the HR Manager (a single role; everything needs a login):
@@ -34,6 +40,15 @@ For the HR Manager (a single role; everything needs a login):
   **outliers**, people paid far outside their peers (same job title, same country). Figures that compare pay across
   countries are converted to USD at a static, dated exchange rate.
 
+For the administrator (a separate login, at **`/admin`**, server-rendered by Rails; see [docs/admin.md](docs/admin.md)):
+
+- **All the data:** every table, read-only, with search, sorting, paging and links between related records.
+  Password digests are never shown.
+- **Graphs:** headcount by department and country, hires per year, salary changes per month, the salary
+  distribution and active against inactive, drawn as SVG on the server.
+- **API monitor:** every API endpoint with its state (idle, healthy, degraded, failing), a live database check,
+  and a log of every call with its **payload and response** (secrets are filtered before anything is stored).
+
 What is deliberately **not** included (payroll, RBAC, live exchange rates, pay-equity analysis, CSV import, …) and
 why is in [docs/requirements.md](docs/requirements.md).
 
@@ -47,8 +62,9 @@ why is in [docs/requirements.md](docs/requirements.md).
 | Delivery | GitHub Actions CI; one multi-stage Docker image in which Rails serves the built React app |
 
 - **Test-driven.** Each feature is a `test:` commit that fails (red) followed by a `feat:` commit that makes it pass
-  (green): 23 red/green pairs in the history, with the bugs the tests and tools found fixed in the commit that
-  follows them. There are about 1,400 lines of backend code and 2,500 lines of backend tests.
+  (green): 37 red commits in the history, each followed by the commit that makes it pass, with the bugs the tests
+  and tools found fixed in the commit that follows them. There are about 3,000 lines of backend code (Ruby and
+  views) and 4,900 lines of backend tests.
 - **Statistics are computed in SQL** (`percentile_cont`, `GROUP BY`, a CTE for outliers), never in Ruby or the
   browser; the frontend only renders what the API returns. Every interactive endpoint responds in under 60 ms at
   p95 with 10,000 employees ([measurements](docs/performance.md)).
@@ -62,6 +78,7 @@ why is in [docs/requirements.md](docs/requirements.md).
 | Document | What is in it |
 |---|---|
 | [docs/requirements.md](docs/requirements.md) | One-page requirements: goal, scope, what is left out and why |
+| [docs/admin.md](docs/admin.md) | The administrator's panel: sign-in, data browser, graphs, the API monitor, and what it records and keeps |
 | [docs/implementation-plan.md](docs/implementation-plan.md) | Architecture, data model, API, TDD strategy, milestones and their status, and §17: what changed while building |
 | [docs/performance.md](docs/performance.md) | Measurements against 10,000 employees, `EXPLAIN` plans, what was deliberately not optimised |
 | [docs/deployment.md](docs/deployment.md) | Deploying the image (Render blueprint), the environment variables, and what was and was not verified |
@@ -86,7 +103,9 @@ npm run dev               # app  http://localhost:5173 (proxies /api to Rails)
 ```
 
 Sign in at http://localhost:5173 with **`hr@acme.example` / `salary-manager-demo`** (created by `db:seed` in
-development; elsewhere set `HR_EMAIL` and `HR_PASSWORD`). `db:seed` is safe to run again, and
+development; elsewhere set `HR_EMAIL` and `HR_PASSWORD`). The administrator's panel is on the Rails port, at
+http://localhost:3000/admin, with **`admin@acme.example` / `admin-panel-demo`** (elsewhere `ADMIN_EMAIL` and
+`ADMIN_PASSWORD`). `db:seed` is safe to run again, and
 `SEED_EMPLOYEES=500 bin/rails db:seed` seeds fewer.
 
 The API can also be used directly:
@@ -108,6 +127,7 @@ docker run -d --name sm-pg --network sm-net -e POSTGRES_PASSWORD=postgres -e POS
 docker run -p 8080:3000 --network sm-net \
   -e DATABASE_URL=postgres://postgres:postgres@sm-pg:5432/salary_management \
   -e SECRET_KEY_BASE=$(openssl rand -hex 64) -e HR_EMAIL=hr@example.com -e HR_PASSWORD=choose-one \
+  -e ADMIN_EMAIL=admin@example.com -e ADMIN_PASSWORD=choose-another \
   -e FORCE_SSL=false salary-management        # FORCE_SSL=false only because this is plain HTTP
 ```
 
@@ -116,11 +136,11 @@ It migrates and seeds on first start, then serves the app at http://localhost:80
 ## Running the tests
 
 ```bash
-cd backend  && bin/rails test && bin/rubocop && bin/brakeman     # 264 tests in about 5 s
+cd backend  && bin/rails test && bin/rubocop && bin/brakeman     # 487 tests in about 7 s
 cd frontend && npm test && npm run lint && npm run build         # 155 tests in about 20 s
 ```
 
-The browser tests (one test of the critical path, run against the production image) are described in
+The browser tests (two tests, the HR manager's critical path and the administrator's panel, run against the production image) are described in
 [e2e/README.md](e2e/README.md). To time every endpoint against a running server: `ruby backend/script/benchmark.rb`.
 
 ## Repository layout
@@ -128,7 +148,7 @@ The browser tests (one test of the critical path, run against the production ima
 ```
 backend/     Rails 8.1 API: app/ (controllers, models, queries, services, serializers), db/, test/, script/
 frontend/    React + TypeScript app: src/ (api, auth, components, features, lib, test)
-e2e/         Playwright browser tests
+e2e/         Playwright browser tests (the HR app and the admin panel)
 docs/        Requirements, plan, performance, deployment, AI usage, screenshots
 Dockerfile   The production image; render.yaml is the Render blueprint
 .github/     CI workflow and Dependabot config

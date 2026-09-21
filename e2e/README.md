@@ -2,7 +2,10 @@
 
 A real browser (Chromium, through [Playwright](https://playwright.dev)) driving the whole product, the way the HR
 manager would: signing in, finding someone in the directory, adding an employee, changing their salary,
-deactivating them, and reading the insights dashboard. It runs against the **production Docker image**, so it also
+deactivating them, and reading the insights dashboard. A second test does the same for the administrator's panel
+(`tests/admin-panel.spec.ts`): it makes some API calls, signs in at `/admin` (and is refused with the HR login), reads
+the dashboard, the data pages and the API monitor, opens a recorded call to check that its password was filtered,
+and signs out. It runs against the **production Docker image**, so it also
 proves that the image serves the React app, the API and the session cookie from one origin.
 
 The suite in `frontend/` and `backend/` already covers the details with fast tests (jsdom and Minitest); this is one
@@ -21,13 +24,15 @@ docker run -d --name sm-pg --network sm-net -e POSTGRES_PASSWORD=postgres -e POS
 docker run -d --name sm-app --network sm-net -p 8080:3000 \
   -e DATABASE_URL=postgres://postgres:postgres@sm-pg:5432/salary_management \
   -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
-  -e HR_EMAIL=hr@acme.example -e HR_PASSWORD=e2e-password-123 -e FORCE_SSL=false \
+  -e HR_EMAIL=hr@acme.example -e HR_PASSWORD=e2e-password-123 \
+  -e ADMIN_EMAIL=admin@acme.example -e ADMIN_PASSWORD=e2e-admin-password-123 -e FORCE_SSL=false \
   salary-management:local
 # the app migrates and seeds 10,000 employees on its first start; wait for http://localhost:8080/up
 
 cd e2e && npm install
 docker run --rm --network sm-net --ipc=host -v "$PWD":/work -w /work \
   -e BASE_URL=http://sm-app:3000 -e HR_EMAIL=hr@acme.example -e HR_PASSWORD=e2e-password-123 \
+  -e ADMIN_EMAIL=admin@acme.example -e ADMIN_PASSWORD=e2e-admin-password-123 \
   mcr.microsoft.com/playwright:v1.63.0-noble bash -c "npm ci && npx playwright test"
 ```
 

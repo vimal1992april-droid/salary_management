@@ -5,7 +5,7 @@ How we will build the salary management software: the decisions, the design, and
 This document is the *how*.
 
 > Status: **everything in the plan is built** (see the table in §11): the backend, the frontend, the Docker image and
-> the browser tests. What remains is for the owner to do: deploy the image to a host and record the demo video.
+> the browser tests, and after the plan was written an administrator's panel (milestone 14, [admin.md](admin.md)). What remains is for the owner to do: deploy the image to a host and record the demo video.
 > Where the build taught us something that changed the plan, the section is updated and the change is listed in
 > §17. The decisions in §2 were made on purpose and can be challenged; the reasoning is next to each one.
 
@@ -252,7 +252,7 @@ Rules: no production code without a failing test that demands it; one behaviour 
 - **Small explicit datasets.** A test creates only the rows it needs, so the expected value is obvious from reading it.
 - **Names are sentences:** `test "filters by country and status together"`; the failure message says what broke.
 - **One reason to fail** per test; Arrange–Act–Assert layout.
-- **Targets:** backend suite under ~30 s, frontend under ~15 s. If a test is slow, fix the test. Today the backend suite is 264 tests and runs in about 5 s (27 s in a fresh container). The frontend suite is 155 tests and takes about 20 s (29 s in a container), **over the 15 s target**: MUI renders slowly in jsdom, and the create-employee tests fill fields with paste rather than typing each character to keep them fast.
+- **Targets:** backend suite under ~30 s, frontend under ~15 s. If a test is slow, fix the test. Today the backend suite is 487 tests and runs in about 7 s (it took 27 s in a fresh container when it had 264 tests, and has not been timed there since). The frontend suite is 155 tests and takes about 20 s (29 s in a container), **over the 15 s target**: MUI renders slowly in jsdom, and the create-employee tests fill fields with paste rather than typing each character to keep them fast.
 - **Coverage** is reported (SimpleCov, Vitest coverage) as a signal, not a goal. We check that core logic branches are covered, not a percentage.
 - **CI is the gate:** tests, RuboCop, Brakeman, ESLint/oxlint, type-check and build all run on every push.
 
@@ -299,6 +299,7 @@ Commit messages use Conventional Commits (`docs:`, `test:`, `feat:`, `refactor:`
 | 10 | **Salary UI** | History rendering, change-salary form and validation | Change salary, see history | Done |
 | 11 | **Insights dashboard** | KPI/table/chart rendering from fixtures, empty and error states | The HR manager's dashboard, including outliers | Done |
 | 12 | **Should-haves** | Outlier rules; CSV columns and filtering | Outliers view, CSV export | Done (API, export link and dashboard section) |
+| 14 | **Admin panel** (added after the plan) | Admin sign-in and its guards; the data browser (`Admin::Table`); metrics and the SVG chart helper; the redactor, recorder and middleware; endpoint registry, statistics and call log; every page | A server-rendered `/admin` with all the data, six graphs and an API monitor showing every endpoint, its state, and each call's payload and response. See [admin.md](admin.md) | Done |
 | 13 | **Ship** | Smoke test against the running image | Dockerfile, Render blueprint, performance notes, browser test, final README | Done, except deploying to a real host and the demo video, which need the owner's account and screen |
 
 Milestones 2–7 (backend) and 8–11 (frontend) could overlap once the API contract for a slice was fixed by its request tests; in practice the backend was finished first, and the frontend's fixtures were then checked against the real API's responses.
@@ -312,6 +313,8 @@ Milestones 2–7 (backend) and 8–11 (frontend) could overlap once the API cont
 - Strong parameters everywhere; ActiveRecord parameterised queries only (Brakeman runs in CI).
 - No secrets in git: `master.key`, `.env*` are ignored, and deployment secrets come from the platform. The demo user is created from environment variables.
 - The demo dataset is entirely synthetic. No real employee data is ever used.
+- **Admin panel** (added after the plan): a separate role (`users.admin`) with its own session cookie, so the HR login cannot open `/admin` and an admin session cannot open the API; the role is checked on every request; sign-in is rate limited with one generic error; forms carry a forgery token; the data pages are read-only, take table and column names only from fixed lists, never select `password_digest` and escape everything they show.
+- **The API monitor stores payloads**, so the log holds personal data. Secret-looking keys are replaced with `[FILTERED]` before anything is written; what cannot be checked (CSV, malformed JSON, other types, bodies over 1 MB) is described, not stored; headers and cookies are never stored; only the newest 5,000 calls are kept; `API_MONITOR=false` turns it off. See [admin.md](admin.md).
 - Left out on purpose: MFA, RBAC, field-level encryption. See [requirements.md](requirements.md).
 
 ## 13. Deployment & CI
@@ -373,4 +376,12 @@ The plan was a starting point. These are the places where the build taught us so
 | `FORCE_SSL` controls TLS enforcement, and the session cookie is `Secure` whenever it is on | Lets the same image be tried over plain HTTP locally while staying strict by default; the old rule keyed the cookie to the environment name. |
 | Every client route is answered by `FrontendController`; the static file server no longer serves `/` | Found by running the image: the static server answered `/` with a one-year cache header, so a browser would keep an old shell after a deploy; and the catch-all route wrongly depended on the `Accept` header. |
 | A **Playwright browser test** against the production image | It found a bug the jsdom tests could not (validation messages that stayed after being fixed). Not in CI, because it needs the image built and a database; run by hand. |
+| The **admin panel** is server-rendered Rails, not part of the React app | It was asked for as "in Rails, for the admin". Server-rendered HTML with SVG drawn on the server needs no build step, no second API surface and no JavaScript, and cannot drift from the data. |
+| The panel has **its own session cookie** (`_salary_admin`) and an `admin` flag on `User`, not a second user table | One account model, two doors: the HR cookie never opens `/admin` and the admin cookie never opens the API. Removing the flag ends access at once. |
+| Admin **sign-out is a POST**, not a DELETE | Found by the browser test: a form cannot send DELETE without `Rack::MethodOverride`, which an API-only app does not have, so the button went to a routing error while integration tests (which send a real DELETE) passed. |
+| The API monitor is a **Rack middleware in `lib/middleware`**, required by an initializer | A middleware has to exist while the app boots, before autoloading is ready; everything it calls is autoloaded as usual. It sits outside `ActionDispatch::ShowExceptions` so it sees the response the caller really gets. |
+| The recorded route comes from `Request#route_uri_pattern`, and only a pattern under `/api` counts | The env key I first read is filled in lazily by that method, and the router leaves the React catch-all (`/*path`) as the route of a call no API route wants. Both were found by tests. |
+| Data-browser columns are ordered by rule (key, then alphabetical, then timestamps) | A database migrated step by step and one loaded from `schema.rb` (which sorts columns) have different column orders; a test that assumed the first broke on the second. |
+| Names, emails and pay are **not** filtered from recorded payloads; keys that look like secrets are | The admin is there to see the data, and can already browse it. What must never be stored is what authenticates someone. |
+| Every tracked text file now has **LF line endings**, enforced by `.gitattributes` and a test | My edits from Windows had given 44 files (one a shell script, whose `\r` made the container exit at once) Windows line endings. Found by running the image; the history before it still contains them. |
 | The frontend suite takes about 20 s, over the 15 s target | MUI renders slowly in jsdom. Fields are filled by paste in the long form tests, and the timeout is 15 s per test for slower CI machines. |

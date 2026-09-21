@@ -33,7 +33,7 @@ The instructions that shaped the work, in the owner's words (translated where th
 
 ## The method
 
-Every feature followed the same loop, and the commit history shows it (23 red commits, each followed by its green one):
+Every feature followed the same loop, and the commit history shows it (37 red commits, each followed by the commit that makes it pass):
 
 1. The AI writes a small set of tests that state the behaviour in plain words, runs them, and confirms they **fail for
    the right reason** (a missing constant is fine; an assertion that cannot fail is not). Commit: `test: ... (red)`.
@@ -65,17 +65,24 @@ recorded in the commit that fixed it.
 | First Docker build put the gems under `/app/vendor/bundle` because `BUNDLE_PATH` was unset | The build failing |
 | The production image answered `/employees` with 404 to clients sending only `Accept: */*`, and cached the app shell for a year at `/` | Building and running the image, then a regression test for each |
 | Validation messages stayed under fields the user had already corrected | A real browser (Playwright); the jsdom tests only ever checked that messages *appeared* |
+| While adding the admin panel, edits made from Windows gave 44 tracked files Windows line endings, including `bin/start-production`, whose first line then asked for a shell named `bash -e\r` | Running the rebuilt production image (the container exited at once); a test now fails on any carriage return, and `.gitattributes` prevents it |
+| The admin's Sign out was a `DELETE` form, which needs `Rack::MethodOverride`, absent from an API-only app; the integration tests sent a real DELETE, so they passed | The browser test (the page stayed on `/admin/logout`); signing out is now a POST, specified the way a browser sends it |
+| The monitor read the matched route from an env key that Rails only fills in lazily, so no route was recorded; then a call that matched no route was recorded with the React catch-all as its route | Integration tests, twice |
+| A test assumed the database's own column order, and a factory that "only" made a salary change also made an active employee, skewing the average | Tests failing on the first run; both were the test's fault, and are said so in their commit messages |
+| Two Brakeman warnings got into a commit because my commit script printed Brakeman's count instead of failing on it | Reading the count in the output; fixed with Arel in its own commit, and the script now refuses to commit on any warning |
+| The salary-distribution labels on the dashboard printed over each other | Looking at the screenshot of the running page; a test now thins labels by width, not just by count |
 
 ## Where verification came from
 
 Tests and tools decide whether something is right, not the AI:
 
-- 264 backend tests, 155 frontend tests, RuboCop, Brakeman and the linter, replayed in clean containers on the Ruby
+- 487 backend tests, 155 frontend tests, RuboCop, Brakeman and the linter, replayed in clean containers on the Ruby
   and Node versions CI uses (which also proved the schema builds an empty database);
 - the frontend's hand-written test fixtures compared with the real API's responses, so mocked tests cannot
   quietly drift from the backend (all 17 request shapes match);
 - query-count assertions for N+1, a repeatable HTTP benchmark for speed ([performance.md](performance.md));
-- the production Docker image run against a real Postgres and driven by a real browser.
+- the production Docker image run against a real Postgres and driven by a real browser (the HR manager's path and
+  the administrator's panel), which found four bugs the other suites could not see.
 
 ## Limits
 
