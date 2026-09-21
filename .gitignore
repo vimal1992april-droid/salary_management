@@ -15,6 +15,7 @@
 # React (frontend)
 /frontend/node_modules
 /frontend/dist
+/frontend/coverage
 /frontend/*.local
 
 # Env and editor files
