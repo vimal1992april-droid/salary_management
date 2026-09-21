@@ -7,7 +7,7 @@ gem "pg", "~> 1.1"
 
 # json 3.x is incompatible with Rails 8.1: parsing a JSON request body raises
 # "wrong number of arguments (given 2, expected 1)", so every POST with a JSON body returns 400.
-gem "json", "< 3"
+gem "json", "< 4"
 
 # CSV export; csv stopped being a default gem in Ruby 3.4
 gem "csv"
