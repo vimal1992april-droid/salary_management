@@ -1,12 +1,10 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.0.5", ">= 8.0.5.1"
+gem "rails", "~> 8.1.3"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
 
-# json 3.x removed the quirks_mode option that ActiveSupport 8.0 still passes
-gem "json", "< 3"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
@@ -41,4 +39,12 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Readable test data (test/factories)
+  gem "factory_bot_rails"
+end
+
+group :test do
+  # Coverage report; a signal for untested branches, not a target
+  gem "simplecov", require: false
 end

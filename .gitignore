@@ -3,6 +3,7 @@
 /backend/tmp/*
 /backend/storage/*
 /backend/public/assets
+/backend/coverage
 /backend/.bundle
 /backend/vendor/bundle
 /backend/config/master.key
