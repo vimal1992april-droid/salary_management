@@ -10,9 +10,31 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_110000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "api_requests", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.decimal "duration_ms", precision: 10, scale: 2, null: false
+    t.string "http_method", limit: 10, null: false
+    t.string "ip_address"
+    t.string "path", null: false
+    t.text "query_string"
+    t.text "request_body"
+    t.string "request_content_type"
+    t.boolean "request_truncated", default: false, null: false
+    t.text "response_body"
+    t.string "response_content_type"
+    t.boolean "response_truncated", default: false, null: false
+    t.string "route"
+    t.integer "status", null: false
+    t.bigint "user_id"
+    t.index ["created_at"], name: "index_api_requests_on_created_at"
+    t.index ["http_method", "route"], name: "index_api_requests_on_http_method_and_route"
+    t.index ["status"], name: "index_api_requests_on_status"
+    t.index ["user_id"], name: "index_api_requests_on_user_id"
+  end
 
   create_table "countries", force: :cascade do |t|
     t.datetime "created_at", null: false

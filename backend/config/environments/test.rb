@@ -25,6 +25,9 @@ Rails.application.configure do
   # A stand-in for the built React app, so the app shell can be tested without building the frontend.
   config.x.frontend_index = Rails.root.join("test/fixtures/files/frontend_index.html")
 
+  # The API monitor is off, so the API tests do not each write a row; the monitor's own tests switch it on.
+  config.x.api_monitor.enabled = false
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 

@@ -38,6 +38,12 @@ module Backend
     # the hashed files under /assets/ are still served, and cached for a year, by the static file server.
     config.public_file_server.index_name = "index.disabled"
 
+    # The API monitor records every call to /api for the admin panel. API_MONITOR=false turns it off; it keeps the
+    # newest `max_rows` calls and trims the table every `prune_every` calls.
+    config.x.api_monitor.enabled = ENV.fetch("API_MONITOR", "true") != "false"
+    config.x.api_monitor.max_rows = 5_000
+    config.x.api_monitor.prune_every = 50
+
     # API-only apps drop the cookie middleware; the HR session lives in a signed, httpOnly cookie.
     config.middleware.use ActionDispatch::Cookies
   end
