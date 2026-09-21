@@ -144,11 +144,24 @@ class Admin::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "signing out ends the session" do
     sign_in_admin
 
-    delete admin_logout_url
+    post admin_logout_url
 
     assert_redirected_to admin_login_url
     get admin_root_url
     assert_redirected_to admin_login_url
+  end
+
+  test "the sign-out button is a plain form post, which is all a browser can send without a script" do
+    sign_in_admin
+
+    get admin_root_url
+
+    # A form can only GET or POST. Rails fakes DELETE with a hidden _method field that Rack::MethodOverride reads,
+    # and an API-only app does not have that middleware, so a "delete" button would go nowhere.
+    assert_select "form[action=?][method=post]", admin_logout_path do
+      assert_select "input[name=_method]", 0
+      assert_select "button, input[type=submit]", text: /Sign out/
+    end
   end
 
   test "a signed-in admin who opens the sign-in page goes straight to the dashboard" do

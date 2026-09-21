@@ -9,7 +9,7 @@ class Admin::ApiMonitorControllerTest < ActionDispatch::IntegrationTest
 
   test "every monitor page sends a signed-out visitor to the sign-in page" do
     recorded = call
-    delete admin_logout_url
+    post admin_logout_url
 
     [ admin_api_monitor_url, admin_api_requests_url, admin_api_request_url(recorded) ].each do |url|
       get url

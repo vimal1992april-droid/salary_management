@@ -7,7 +7,7 @@ class Admin::TablesControllerTest < ActionDispatch::IntegrationTest
 
   test "every data page sends a signed-out visitor to the sign-in page" do
     department = create(:department)
-    delete admin_logout_url
+    post admin_logout_url
 
     [ admin_tables_url, admin_table_url("departments"), admin_record_url("departments", department.id) ].each do |url|
       get url
