@@ -28,4 +28,51 @@ describe('apiFetch', () => {
 
     await expect(apiFetch('/api/ping')).rejects.toMatchObject({ status: 500, message: 'Request failed (500)' })
   })
+
+  it('sends the json option as a JSON body with the right content type', async () => {
+    let received: { body: unknown; contentType: string | null } | undefined
+    server.use(
+      http.post('*/api/things', async ({ request }) => {
+        received = { body: await request.json(), contentType: request.headers.get('content-type') }
+        return HttpResponse.json({ id: 1 }, { status: 201 })
+      }),
+    )
+
+    await apiFetch('/api/things', { method: 'POST', json: { name: 'Asha' } })
+
+    expect(received).toEqual({ body: { name: 'Asha' }, contentType: 'application/json' })
+  })
+
+  it('returns undefined for a response with no content', async () => {
+    server.use(http.delete('*/api/things/1', () => new HttpResponse(null, { status: 204 })))
+
+    await expect(apiFetch('/api/things/1', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
+
+  it('exposes the per-field validation errors of a 422', async () => {
+    server.use(
+      http.post('*/api/things', () =>
+        HttpResponse.json(
+          { error: { code: 'validation_failed', message: 'Validation failed', details: { email: ['has already been taken'] } } },
+          { status: 422 },
+        ),
+      ),
+    )
+
+    await expect(apiFetch('/api/things', { method: 'POST', json: {} })).rejects.toMatchObject({
+      status: 422,
+      code: 'validation_failed',
+      details: { email: ['has already been taken'] },
+    })
+  })
+
+  it('turns a network failure into an ApiError instead of a bare TypeError', async () => {
+    server.use(http.get('*/api/ping', () => HttpResponse.error()))
+
+    await expect(apiFetch('/api/ping')).rejects.toMatchObject({
+      status: 0,
+      code: 'network_error',
+      message: 'Could not reach the server',
+    })
+  })
 })
