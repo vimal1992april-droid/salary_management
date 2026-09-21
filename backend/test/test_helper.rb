@@ -20,3 +20,17 @@ module ActiveSupport
     include FactoryBot::Syntax::Methods
   end
 end
+
+module ActionDispatch
+  class IntegrationTest
+    # Login attempts are rate limited through Rails.cache, so start every test with a clean slate.
+    setup { Rails.cache.clear }
+
+    # Signs in through the real login endpoint, so the session cookie is set exactly as in production.
+    def sign_in(user = create(:user), password: "correct-horse-battery")
+      post api_session_url, params: { email: user.email, password: password }, as: :json
+      assert_response :created
+      user
+    end
+  end
+end
