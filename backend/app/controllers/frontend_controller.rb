@@ -12,7 +12,9 @@ class FrontendController < ApplicationController
       # are immutable and cached for a year by the static file server.
       response.headers["Cache-Control"] = "no-cache"
     else
-      render plain: "The frontend has not been built. Run `npm run build` in frontend/ and copy dist/ into backend/public/.",
+      render plain: "The frontend has not been built.\n\n" \
+                    "Developing? Rails on this port is only the API. Open the app at http://localhost:5173 (npm run dev in frontend/).\n" \
+                    "Deploying? Run `npm run build` in frontend/ and copy dist/ into backend/public/ (the Dockerfile does this).",
              status: :not_found
     end
   end
