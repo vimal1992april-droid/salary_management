@@ -9,6 +9,7 @@ the HR team's Excel files: the HR Manager can find and maintain salary data, and
 > deploy it (see [docs/deployment.md](docs/deployment.md)) and record the demo video.
 
 - **Live demo:** _not deployed yet_ (needs a Render account; the blueprint is ready)
+- **Logins:** HR manager and administrator, see [Signing in](#signing-in)
 - **Demo video:** _not recorded yet_
 
 | Directory | Insights |
@@ -102,10 +103,9 @@ npm install
 npm run dev               # app  http://localhost:5173 (proxies /api to Rails)
 ```
 
-Sign in at http://localhost:5173 with **`hr@acme.example` / `salary-manager-demo`** (created by `db:seed` in
-development; elsewhere set `HR_EMAIL` and `HR_PASSWORD`). The administrator's panel is on the Rails port, at
-http://localhost:3000/admin, with **`admin@acme.example` / `admin-panel-demo`** (elsewhere `ADMIN_EMAIL` and
-`ADMIN_PASSWORD`). `db:seed` is safe to run again, and
+Then sign in (see [Signing in](#signing-in) for both logins): the HR app at http://localhost:5173 with
+**`hr@acme.example` / `salary-manager-demo`**, and the administrator's panel at http://localhost:3000/admin with
+**`admin@acme.example` / `admin-panel-demo`**. `db:seed` is safe to run again, and
 `SEED_EMPLOYEES=500 bin/rails db:seed` seeds fewer.
 
 The API can also be used directly:
@@ -117,6 +117,44 @@ curl -b cookies.txt 'http://localhost:3000/api/insights/salary_stats?group_by=co
 curl -b cookies.txt 'http://localhost:3000/api/insights/outliers?limit=10'
 curl -b cookies.txt -o employees.csv 'http://localhost:3000/api/employees/export?status=active'
 ```
+
+## Signing in
+
+There are **two separate logins**. They are different accounts with different cookies: the HR login cannot open the
+admin panel, and the admin login cannot open the HR app or its API.
+
+| | HR manager | Administrator |
+|---|---|---|
+| What it opens | The React app: employees, salary changes, insights | The Rails admin panel: all the data, graphs and the API monitor ([docs/admin.md](docs/admin.md)) |
+| Local development | http://localhost:5173 | http://localhost:3000/admin |
+| Email | `hr@acme.example` | `admin@acme.example` |
+| Password | `salary-manager-demo` | `admin-panel-demo` |
+| Set them yourself | `HR_EMAIL`, `HR_PASSWORD` | `ADMIN_EMAIL`, `ADMIN_PASSWORD` |
+
+**Local development.** Both demo logins are created by `bin/rails db:seed` (and only in development; the demo
+passwords are never created anywhere else). Start Rails (`bin/rails server`, port 3000) and, for the HR app, the
+frontend (`npm run dev`, port 5173), then open the address in the table. If the login page says *Invalid email or
+password*, the login has not been created yet: run `bin/rails db:seed`.
+
+**The Docker image** (see below) serves both on one port: the HR app at http://localhost:8080 and the admin panel at
+http://localhost:8080/admin, with the emails and passwords you passed as `HR_EMAIL`, `HR_PASSWORD`, `ADMIN_EMAIL` and
+`ADMIN_PASSWORD`. **On Render** it is the same, at your service's address and `/admin`, with the four values you entered
+when creating the blueprint ([docs/deployment.md](docs/deployment.md)).
+
+Good to know:
+
+- Outside development there are no default logins: a login exists only if its two variables are set. They are read
+  on every start (and by `db:seed`), so changing the variable and restarting also **resets that password**.
+- To choose your own in development: `ADMIN_EMAIL=me@example.com ADMIN_PASSWORD=a-long-password bin/rails db:seed`
+  (and the same with `HR_EMAIL` and `HR_PASSWORD`).
+- To make an existing user an administrator, in `bin/rails console`:
+  `User.find_by!(email: "someone@example.com").update!(admin: true)`. Removing it (`admin: false`) ends their access to
+  the panel at once.
+- The admin session lasts 8 hours, the HR session 14 days. After 10 failed attempts in 3 minutes from one address,
+  sign-in is refused for a while.
+- After pulling new code, **restart the Rails server**: it reads its configuration and new directories only when it
+  starts, and a server left running from before the admin panel was added will fail with errors such as
+  `uninitialized constant AdminHelper`.
 
 ## Running the whole product as one image
 
@@ -131,7 +169,8 @@ docker run -p 8080:3000 --network sm-net \
   -e FORCE_SSL=false salary-management        # FORCE_SSL=false only because this is plain HTTP
 ```
 
-It migrates and seeds on first start, then serves the app at http://localhost:8080.
+It migrates and seeds on first start, then serves the HR app at http://localhost:8080 and the admin panel at
+http://localhost:8080/admin (sign in with the emails and passwords passed above; see [Signing in](#signing-in)).
 
 ## Running the tests
 
