@@ -76,7 +76,7 @@ jobs:
         run: bin/rails db:test:prepare test
 
   frontend:
-    name: Frontend / lint and build
+    name: Frontend / lint, tests and build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -91,5 +91,7 @@ jobs:
       - run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Tests
+        run: npm test
       - name: Type-check and build
         run: npm run build
