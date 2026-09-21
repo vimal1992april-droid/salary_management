@@ -68,16 +68,19 @@ class FrontendControllerTest < ActionDispatch::IntegrationTest
 
   test "does not crash when a long-running server never loaded the frontend_index setting" do
     # Configuration is only read when a server starts, but controller code reloads in development, so a server started
-    # before the setting existed would otherwise fail with "no implicit conversion of nil into String".
-    original = Rails.configuration.x.frontend_index
-    Rails.configuration.x.frontend_index = nil
+    # before the setting existed ran the new controller against a setting that was never defined. Reading an undefined
+    # `config.x` value does not return nil: it returns an empty ActiveSupport::OrderedOptions, which is truthy and
+    # answers any method (including to_path) with nil, giving "no implicit conversion of nil into String".
+    settings = Rails.configuration.x.instance_variable_get(:@configurations)
+    original = settings.delete(:frontend_index)
+    assert_kind_of ActiveSupport::OrderedOptions, Rails.configuration.x.frontend_index
 
     get "/employees"
 
     assert_response :not_found
     assert_includes response.body, "The frontend has not been built"
   ensure
-    Rails.configuration.x.frontend_index = original
+    settings[:frontend_index] = original
   end
 
   test "explains itself when the frontend has not been built" do
