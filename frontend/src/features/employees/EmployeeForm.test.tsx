@@ -88,6 +88,36 @@ describe('adding an employee', () => {
     expect(sent).toHaveLength(0)
   })
 
+  it("clears a field's message as soon as it is edited, and leaves the others", async () => {
+    mockServer()
+    const user = userEvent.setup()
+
+    renderApp('/employees/new')
+    await user.click(await screen.findByRole('button', { name: 'Add employee' }))
+    expect(await screen.findByText('Enter an employee number')).toBeInTheDocument()
+
+    await enter(user, 'Employee number', 'E90001')
+
+    expect(screen.queryByText('Enter an employee number')).not.toBeInTheDocument()
+    expect(screen.getByText('Enter a first name')).toBeInTheDocument()
+  })
+
+  it('brings back the currency hint once the salary message is gone', async () => {
+    mockServer()
+    const user = userEvent.setup()
+
+    renderApp('/employees/new')
+    await user.click(await screen.findByRole('button', { name: 'Add employee' }))
+    expect(await screen.findByText('Enter the starting salary')).toBeInTheDocument()
+
+    await screen.findByRole('option', { name: 'India' })
+    await user.selectOptions(screen.getByLabelText('Country'), 'India')
+    await enter(user, 'Starting salary', '1500000')
+
+    expect(screen.queryByText('Enter the starting salary')).not.toBeInTheDocument()
+    expect(screen.getByText('Paid in INR')).toBeInTheDocument()
+  })
+
   it('says which currency the salary will be in, once a country is chosen', async () => {
     mockServer()
     const user = userEvent.setup()
@@ -141,6 +171,26 @@ describe('adding an employee', () => {
     expect(await screen.findByText('Has already been taken')).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toHaveValue('nikhil.rao@acme.example')
     expect(screen.getByLabelText('First name')).toHaveValue('Nikhil')
+  })
+
+  it("clears the server's message for a field once that field is edited", async () => {
+    mockServer({
+      failure: HttpResponse.json(
+        { error: { code: 'validation_failed', message: 'Validation failed', details: { email: ['has already been taken'] } } },
+        { status: 422 },
+      ),
+    })
+    const user = userEvent.setup()
+
+    renderApp('/employees/new')
+    await fillNewEmployee(user)
+    await user.click(screen.getByRole('button', { name: 'Add employee' }))
+    expect(await screen.findByText('Has already been taken')).toBeInTheDocument()
+
+    await user.click(screen.getByLabelText('Email'))
+    await user.paste('x')
+
+    expect(screen.queryByText('Has already been taken')).not.toBeInTheDocument()
   })
 
   it('reports any other failure above the form', async () => {

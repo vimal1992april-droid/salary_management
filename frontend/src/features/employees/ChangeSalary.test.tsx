@@ -90,6 +90,21 @@ describe('changing an employee\'s salary', () => {
     expect(posted).toHaveLength(0)
   })
 
+  it("clears a field's message as soon as it is edited, and leaves the others", async () => {
+    mockEmployee()
+    const user = userEvent.setup()
+
+    const dialog = await openDialog(user)
+    await user.click(within(dialog).getByRole('button', { name: 'Save change' }))
+    expect(await within(dialog).findByText('Enter the new salary')).toBeInTheDocument()
+
+    await user.click(within(dialog).getByLabelText('New salary'))
+    await user.paste('110000')
+
+    expect(within(dialog).queryByText('Enter the new salary')).not.toBeInTheDocument()
+    expect(within(dialog).getByText('Give a reason for the change')).toBeInTheDocument()
+  })
+
   it('refuses a salary that is the same as the current one', async () => {
     const posted = mockEmployee()
     const user = userEvent.setup()
