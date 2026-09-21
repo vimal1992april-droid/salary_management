@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_100008) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,7 +62,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100008) do
     t.index ["employee_number"], name: "index_employees_on_employee_number", unique: true
     t.index ["job_title_id"], name: "index_employees_on_job_title_id"
     t.check_constraint "salary_amount > 0::numeric", name: "employees_salary_amount_positive"
-    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])", name: "employees_status_valid"
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])", name: "employees_status_valid"
   end
 
   create_table "job_titles", force: :cascade do |t|
@@ -102,6 +102,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100008) do
   end
 
   create_table "users", force: :cascade do |t|
+    t.boolean "admin", default: false, null: false
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "password_digest", null: false

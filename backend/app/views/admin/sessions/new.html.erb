@@ -1,0 +1,13 @@
+<% content_for :title, "Sign in" %>
+<div class="auth card">
+  <h1>Salary admin</h1>
+  <p class="muted">Sign in with an administrator account.</p>
+  <%= form_with url: admin_login_path, method: :post do %>
+    <label for="email">Email</label>
+    <input id="email" type="email" name="email" autocomplete="username" autofocus required>
+    <label for="password">Password</label>
+    <input id="password" type="password" name="password" autocomplete="current-password" required>
+    <% if @error %><div class="error" role="alert"><%= @error %></div><% end %>
+    <button class="button" type="submit">Sign in</button>
+  <% end %>
+</div>

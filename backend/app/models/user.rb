@@ -4,6 +4,8 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :salary_changes, foreign_key: :changed_by_id, inverse_of: :changed_by, dependent: :nullify
 
+  scope :admins, -> { where(admin: true) }
+
   normalizes :email, with: ->(email) { email.strip.downcase }
 
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }, uniqueness: true

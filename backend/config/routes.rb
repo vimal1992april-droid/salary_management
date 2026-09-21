@@ -5,6 +5,14 @@ Rails.application.routes.draw do
 
   root "frontend#index"
 
+  # The administrator's server-rendered panel, separate from the HR manager's React app.
+  namespace :admin do
+    root "dashboard#show"
+    get "login", to: "sessions#new"
+    post "login", to: "sessions#create"
+    delete "logout", to: "sessions#destroy"
+  end
+
   namespace :api do
     get "health", to: "health#show"
     get "lookups", to: "lookups#show"
@@ -24,10 +32,10 @@ Rails.application.routes.draw do
     end
   end
 
-  # Every other page is a client-side route of the React app. Not /api, not health checks, and not anything
+  # Every other page is a client-side route of the React app. Not /api or /admin, not health checks, and not anything
   # that looks like a file (a missing asset should be a 404, not the app shell). The Accept header is deliberately
   # not consulted: a browser sends a long list, but curl and health checkers send just */*, and they need pages too.
   get "*path", to: "frontend#index", constraints: lambda { |request|
-    !request.path.start_with?("/api", "/up", "/rails") && !request.path.match?(/\.\w+\z/)
+    !request.path.start_with?("/api", "/admin", "/up", "/rails") && !request.path.match?(/\.\w+\z/)
   }
 end

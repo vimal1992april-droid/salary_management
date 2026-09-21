@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title><%= [content_for(:title), "Salary admin"].compact_blank.join(" - ") %></title>
+    <%= csrf_meta_tags %>
+    <%= render "admin/shared/styles" %>
+  </head>
+  <body>
+    <% if current_admin %>
+      <header class="topbar">
+        <a class="brand" href="<%= admin_root_path %>">Salary admin</a>
+        <span class="spacer"></span>
+        <span class="who"><%= current_admin.email %></span>
+        <%= button_to "Sign out", admin_logout_path, method: :delete, class: "link-button" %>
+      </header>
+    <% end %>
+    <main class="page">
+      <%= yield %>
+    </main>
+  </body>
+</html>
