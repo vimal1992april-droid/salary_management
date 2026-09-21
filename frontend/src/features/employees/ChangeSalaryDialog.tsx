@@ -49,8 +49,11 @@ export default function ChangeSalaryDialog({ employee, onClose, onSaved }: Props
 
   const currencies = lookups.data?.currencies ?? [{ code: currency, name: currency, rate_to_usd: '', rate_as_of: '' }]
 
+  // Editing a field ends what was said about it: its own message goes, and so does anything the server said.
   function set(field: keyof SalaryChangeValues, value: string) {
     setValues((previous) => ({ ...previous, [field]: value }))
+    setClientErrors(({ [field]: _edited, ...rest }) => rest)
+    save.reset()
   }
 
   function handleSubmit(event: FormEvent) {

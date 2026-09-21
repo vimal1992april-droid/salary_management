@@ -69,7 +69,12 @@ function EmployeeForm({ employee }: { employee?: Employee }) {
   const generalErrors = validation ? validation.other : save.error ? [save.error.message] : []
   const errorFor = (field: keyof EmployeeValues) => clientErrors[field] ?? validation?.fields[field]
 
-  const set = (field: keyof EmployeeValues) => (value: string) => setValues((previous) => ({ ...previous, [field]: value }))
+  // Editing a field ends what was said about it: its own message goes, and so does anything the server said.
+  const set = (field: keyof EmployeeValues) => (value: string) => {
+    setValues((previous) => ({ ...previous, [field]: value }))
+    setClientErrors(({ [field]: _edited, ...rest }) => rest)
+    save.reset()
+  }
   const text = (field: keyof EmployeeValues, label: string, extra: { type?: string; helper?: ReactNode } = {}) => (
     <TextField
       label={label}
