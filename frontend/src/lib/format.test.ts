@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatMoney, formatNumber } from './format'
+import { formatDate, formatMoney, formatNumber, formatPercentChange } from './format'
 
 describe('formatMoney', () => {
   it('formats a whole amount in its own currency with no decimals', () => {
@@ -35,5 +35,22 @@ describe('formatNumber', () => {
   it('groups thousands', () => {
     expect(formatNumber(10000)).toBe('10,000')
     expect(formatNumber(0)).toBe('0')
+  })
+})
+
+describe('formatPercentChange', () => {
+  it('shows a rise with a plus and a fall with a minus, to one decimal', () => {
+    expect(formatPercentChange('80000', '90000')).toBe('+12.5%')
+    expect(formatPercentChange('90000', '80000')).toBe('-11.1%')
+  })
+
+  it('drops the decimal for a whole percentage', () => {
+    expect(formatPercentChange('100000', '110000')).toBe('+10%')
+  })
+
+  it('is a dash when there is nothing sensible to compare', () => {
+    expect(formatPercentChange('0', '100')).toBe('—')
+    expect(formatPercentChange('abc', '100')).toBe('—')
+    expect(formatPercentChange('100', undefined)).toBe('—')
   })
 })

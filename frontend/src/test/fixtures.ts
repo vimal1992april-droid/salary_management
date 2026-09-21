@@ -1,4 +1,5 @@
 import type { Employee, EmployeeList } from '../api/employees'
+import type { SalaryChange } from '../api/salaryChanges'
 import type { Lookups } from '../api/lookups'
 
 let nextId = 1
@@ -45,4 +46,20 @@ export const lookups: Lookups = {
     { code: 'USD', name: 'US Dollar', rate_to_usd: '1.0', rate_as_of: '2026-01-01' },
     { code: 'INR', name: 'Indian Rupee', rate_to_usd: '0.012', rate_as_of: '2026-01-01' },
   ],
+}
+
+let nextChangeId = 1
+
+/** One entry of an employee's salary history as the API returns it. */
+export function makeSalaryChange(overrides: Partial<SalaryChange> = {}): SalaryChange {
+  return {
+    id: nextChangeId++,
+    effective_on: '2024-04-01',
+    reason: 'Annual review',
+    previous_salary: { amount: '80000.0', currency: 'USD' },
+    new_salary: { amount: '90000.0', currency: 'USD' },
+    changed_by: { id: 1, email: 'hr@acme.example' },
+    created_at: '2024-04-01T09:00:00.000Z',
+    ...overrides,
+  }
 }
