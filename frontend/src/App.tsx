@@ -1,28 +1,23 @@
-import { useEffect, useState } from 'react'
-import { getHealth, type Health } from './api/health'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import AuthGate from './auth/AuthGate'
+import LoginPage from './auth/LoginPage'
+import AppLayout from './components/AppLayout'
+import EmployeesPage from './pages/EmployeesPage'
+import InsightsPage from './pages/InsightsPage'
+import NotFoundPage from './pages/NotFoundPage'
 
-function App() {
-  const [health, setHealth] = useState<Health | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    getHealth()
-      .then(setHealth)
-      .catch((err: Error) => setError(err.message))
-  }, [])
-
+export default function App() {
   return (
-    <main>
-      <h1>Salary Management</h1>
-      {error && <p>API unreachable: {error}</p>}
-      {!error && !health && <p>Checking API…</p>}
-      {health && (
-        <p>
-          API {health.status} · Rails {health.rails} · database {health.database ? 'connected' : 'down'}
-        </p>
-      )}
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<AuthGate />}>
+        <Route element={<AppLayout />}>
+          <Route index element={<Navigate to="/employees" replace />} />
+          <Route path="employees" element={<EmployeesPage />} />
+          <Route path="insights" element={<InsightsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Route>
+    </Routes>
   )
 }
-
-export default App

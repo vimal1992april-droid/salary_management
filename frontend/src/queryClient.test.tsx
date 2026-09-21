@@ -10,6 +10,21 @@ import { hr, signedIn, signedOut } from './test/helpers'
 import { server } from './test/server'
 
 describe('createQueryClient', () => {
+  it('retries an unreachable server twice, but never retries a real answer from the API', () => {
+    const retry = createQueryClient().getDefaultOptions().queries?.retry as (failures: number, error: Error) => boolean
+    const unreachable = new ApiError(0, 'Could not reach the server', 'network_error')
+
+    expect(retry(0, unreachable)).toBe(true)
+    expect(retry(1, unreachable)).toBe(true)
+    expect(retry(2, unreachable)).toBe(false)
+    expect(retry(0, new ApiError(500, 'Request failed (500)'))).toBe(false)
+    expect(retry(0, new ApiError(404, 'Not found', 'not_found'))).toBe(false)
+  })
+
+  it('does not retry at all when told not to, as in tests', () => {
+    expect(createQueryClient({ retry: false }).getDefaultOptions().queries?.retry).toBe(false)
+  })
+
   it('re-checks the session when any request comes back 401, so an expired session ends up at sign-in', async () => {
     signedIn()
     const client = createQueryClient({ retry: false })
