@@ -1,0 +1,21 @@
+# Not needed to build the image, or must never be baked into it.
+.git
+.github
+.claude
+.env
+.env.*
+docs
+*.md
+
+backend/config/master.key
+backend/config/credentials/*.key
+backend/log/*
+backend/tmp/*
+backend/storage/*
+backend/coverage
+backend/vendor/bundle
+backend/.bundle
+
+frontend/node_modules
+frontend/dist
+frontend/coverage

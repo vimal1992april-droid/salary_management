@@ -1,0 +1,28 @@
+# Render blueprint: a web service built from the Dockerfile, and a Postgres database.
+# Deploy with "New > Blueprint" on Render and point it at this repository. Render asks for the two values marked
+# `sync: false` (the HR manager's email and password); everything else is wired up here.
+databases:
+  - name: salary-management-db
+    databaseName: salary_management
+    user: salary_management
+    plan: free
+
+services:
+  - type: web
+    name: salary-management
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /up
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: salary-management-db
+          property: connectionString
+      - key: SECRET_KEY_BASE
+        generateValue: true
+      - key: HR_EMAIL
+        sync: false
+      - key: HR_PASSWORD
+        sync: false

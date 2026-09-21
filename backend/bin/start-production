@@ -1,0 +1,19 @@
+#!/bin/bash -e
+# Starts the app in production: prepares the database, seeds it the first time only, then runs Puma.
+#
+# Needs DATABASE_URL and SECRET_KEY_BASE. HR_EMAIL and HR_PASSWORD create (or reset) the HR login.
+cd "$(dirname "$0")/.."
+
+bin/rails db:prepare
+
+if bin/rails runner 'exit(Employee.exists? ? 0 : 1)'; then
+  echo "Database already has employees; not seeding."
+  if [ -n "$HR_EMAIL" ] && [ -n "$HR_PASSWORD" ]; then
+    bin/rails runner 'Seeding::HrUser.ensure!(email: ENV.fetch("HR_EMAIL"), password: ENV.fetch("HR_PASSWORD")); puts "HR login ready: #{ENV.fetch("HR_EMAIL")}"'
+  fi
+else
+  echo "Empty database: seeding the demo data."
+  bin/rails db:seed
+fi
+
+exec bundle exec puma -C config/puma.rb
