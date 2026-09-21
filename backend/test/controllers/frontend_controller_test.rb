@@ -66,6 +66,20 @@ class FrontendControllerTest < ActionDispatch::IntegrationTest
     assert_equal "ok", response.parsed_body["status"]
   end
 
+  test "does not crash when a long-running server never loaded the frontend_index setting" do
+    # Configuration is only read when a server starts, but controller code reloads in development, so a server started
+    # before the setting existed would otherwise fail with "no implicit conversion of nil into String".
+    original = Rails.configuration.x.frontend_index
+    Rails.configuration.x.frontend_index = nil
+
+    get "/employees"
+
+    assert_response :not_found
+    assert_includes response.body, "The frontend has not been built"
+  ensure
+    Rails.configuration.x.frontend_index = original
+  end
+
   test "explains itself when the frontend has not been built" do
     original = Rails.configuration.x.frontend_index
     Rails.configuration.x.frontend_index = Rails.root.join("tmp/does-not-exist.html")
