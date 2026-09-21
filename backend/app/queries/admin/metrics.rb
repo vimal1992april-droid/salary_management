@@ -20,8 +20,8 @@ module Admin
       Result.new(
         counts: counts(by_status),
         overview: Insights::Overview.call,
-        headcount_by_department: headcount(Department, :name),
-        headcount_by_country: headcount(Country, :name, limit: COUNTRY_LIMIT),
+        headcount_by_department: headcount(Department, :department),
+        headcount_by_country: headcount(Country, :country, limit: COUNTRY_LIMIT),
         hires_by_year: hires_by_year,
         salary_changes_by_month: salary_changes_by_month,
         status_split: [ { label: "Active", value: by_status.fetch("active", 0) },
@@ -48,11 +48,9 @@ module Admin
     end
 
     # Employees of each department (or country), biggest first, ties by name; a group with nobody in it is left out.
-    def headcount(model, name_column, limit: nil)
-      table = model.table_name
-      rows = Employee.joins(model.model_name.singular.to_sym)
-                     .group("#{table}.#{name_column}")
-                     .order(Arel.sql("COUNT(*) DESC"), Arel.sql("#{table}.#{name_column}"))
+    def headcount(model, association, limit: nil)
+      name = model.arel_table[:name]
+      rows = Employee.joins(association).group(name).order(Arel::Nodes::Descending.new(Arel.star.count), name.asc)
       rows = rows.limit(limit) if limit
       rows.count.map { |label, value| { label: label, value: value } }
     end
