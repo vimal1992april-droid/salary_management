@@ -60,6 +60,13 @@ class Api::SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal wrong_password, response.parsed_body
   end
 
+  test "missing credentials are rejected like any other bad login" do
+    post api_session_url, params: {}, as: :json
+
+    assert_response :unauthorized
+    assert_equal "invalid_credentials", response.parsed_body.dig("error", "code")
+  end
+
   test "repeated login attempts are rate limited" do
     10.times { post api_session_url, params: { email: "hr@acme.example", password: "wrong" }, as: :json }
 
