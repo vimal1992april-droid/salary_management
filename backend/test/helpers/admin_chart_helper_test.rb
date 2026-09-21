@@ -99,6 +99,15 @@ class AdminChartHelperTest < ActionView::TestCase
     assert_equal [ "Active 75 (75%)", "Inactive 25 (25%)" ], legend
   end
 
+  test "a donut uses the colours it is given, so a status can look like what it means" do
+    rows = [ { label: "OK", value: 3 }, { label: "Failed", value: 1 } ]
+
+    chart = dom(donut_chart(rows, title: "Status", colors: %w[#16a34a #dc2626]))
+
+    assert_equal %w[#16a34a #dc2626], chart.css("circle.slice").map { |slice| slice["stroke"] }
+    assert_includes chart.css(".swatch").map { |swatch| swatch["style"] }.join, "#dc2626"
+  end
+
   test "a donut whose values are all zero has nothing to show" do
     chart = dom(donut_chart([ { label: "Active", value: 0 }, { label: "Inactive", value: 0 } ], title: "Status"))
 

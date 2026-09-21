@@ -1,0 +1,38 @@
+<% content_for :title, "#{@call.http_method} #{@call.path}" %>
+<p class="crumbs"><%= link_to "API monitor", admin_api_monitor_path %> / <%= link_to "Calls", admin_api_requests_path %></p>
+<h1 class="mono-title"><%= @call.http_method %> <%= @call.path %></h1>
+
+<div class="card">
+  <dl class="record">
+    <dt>status</dt><dd><%= status_pill(@call.status) %></dd>
+    <dt>time taken</dt><dd><%= milliseconds(@call.duration_ms) %></dd>
+    <dt>when</dt><dd><%= utc(@call.created_at) %></dd>
+    <dt>endpoint</dt><dd><%= @call.route || "matched no route" %></dd>
+    <dt>query string</dt><dd><%= @call.query_string.presence || "none" %></dd>
+    <dt>user</dt>
+    <dd>
+      <% if @user %>
+        <%= link_to @user.email, admin_record_path("users", @user.id) %>
+      <% elsif @call.user_id %>
+        user #<%= @call.user_id %> (removed)
+      <% else %>
+        anonymous
+      <% end %>
+    </dd>
+    <dt>address</dt><dd><%= @call.ip_address.presence || "unknown" %></dd>
+  </dl>
+</div>
+
+<% { "request" => [ "Request payload", @call.request_content_type, @call.request_body, @call.request_truncated ],
+     "response" => [ "Response payload", @call.response_content_type, @call.response_body, @call.response_truncated ] }.each do |kind, (heading, content_type, body, cut)| %>
+  <section class="<%= kind %>">
+    <h2><%= heading %></h2>
+    <% if body.nil? %>
+      <p class="none muted">No payload.</p>
+    <% else %>
+      <div class="content-type muted"><%= content_type.presence || "no content type" %></div>
+      <% if cut %><p class="cut">Cut short: only the first <%= number_with_delimiter(ApiMonitor::Redactor::STORE_LIMIT) %> bytes are kept.</p><% end %>
+      <pre class="payload"><%= pretty_payload(body) %></pre>
+    <% end %>
+  </section>
+<% end %>

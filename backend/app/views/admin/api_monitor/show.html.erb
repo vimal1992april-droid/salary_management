@@ -1,0 +1,97 @@
+<% content_for :title, "API monitor" %>
+<% summary = @stats.summary %>
+<h1>API monitor</h1>
+
+<div class="card live">
+  <div class="live-database">
+    <span class="dot <%= @live.database_up ? "up" : "down" %>"></span>
+    Database: <strong><%= @live.database_up ? "up" : "DOWN" %></strong>
+    <% if @live.database_ms %><span class="muted">&middot; answered in <%= milliseconds(@live.database_ms) %></span><% end %>
+  </div>
+  <div class="live-recording">
+    <span class="dot <%= @live.recording ? "up" : "off" %>"></span>
+    <% if @live.recording %>
+      Recording: <strong>on</strong>
+      <span class="muted">&middot; <%= number_with_delimiter(@live.stored_calls) %> calls kept, at most <%= number_with_delimiter(@live.max_rows) %></span>
+    <% else %>
+      Recording: <strong>off</strong>
+      <span class="muted">&middot; nothing new is recorded, so the numbers below stand still (API_MONITOR=false)</span>
+    <% end %>
+  </div>
+  <div class="muted">Rails <%= @live.rails_version %> &middot; <%= @live.environment %></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi">
+    <div class="kpi-label">Calls (24 h)</div>
+    <div class="kpi-value"><%= number_with_delimiter(summary.total) %></div>
+    <div class="kpi-note"><%= link_to "See the calls", admin_api_requests_path %></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Server errors</div>
+    <div class="kpi-value"><%= number_with_precision(summary.server_error_percent, precision: 1) %>%</div>
+    <div class="kpi-note"><%= pluralize(summary.server_errors, "call") %> answered 5xx <%= link_to "Show", admin_api_requests_path(status: "5xx") if summary.server_errors.positive? %></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Client errors</div>
+    <div class="kpi-value"><%= number_with_delimiter(summary.client_errors) %></div>
+    <div class="kpi-note">4xx: refused, not found, invalid <%= link_to "Show", admin_api_requests_path(status: "4xx") if summary.client_errors.positive? %></div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Average time</div>
+    <div class="kpi-value"><%= milliseconds(summary.average_ms) %></div>
+    <div class="kpi-note">to answer a call</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">95th percentile</div>
+    <div class="kpi-value"><%= milliseconds(summary.p95_ms) %></div>
+    <div class="kpi-note">19 in 20 calls are faster</div>
+  </div>
+</div>
+
+<div class="charts">
+  <%= column_chart @stats.hourly, title: "Calls per hour (last 24 hours, UTC)" %>
+  <%= donut_chart summary.by_class.map { |name, count| { label: name, value: count } }, title: "Statuses",
+                  colors: %w[#16a34a #0891b2 #d97706 #dc2626] %>
+</div>
+
+<h2>Endpoints</h2>
+<div class="card flush scroll">
+  <table class="data endpoints">
+    <thead>
+      <tr>
+        <th>Method</th><th>Path</th><th>Handled by</th><th>State</th>
+        <th class="num">Calls</th><th class="num">4xx / 5xx</th><th class="num">Average</th><th>Last call</th><th>Last status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @stats.endpoints.each do |row| %>
+        <% endpoint = row.endpoint %>
+        <tr>
+          <td class="method"><span class="verb"><%= endpoint.http_method %></span></td>
+          <td class="path mono"><%= link_to endpoint.path, admin_api_requests_path(http_method: endpoint.http_method, route: endpoint.path) %></td>
+          <td class="action mono"><%= "#{endpoint.controller}##{endpoint.action}" %></td>
+          <td class="state"><%= state_pill(row.state) %></td>
+          <td class="calls num"><%= number_with_delimiter(row.calls) %></td>
+          <td class="errors num"><%= row.client_errors %> / <%= row.server_errors %></td>
+          <td class="average num"><%= milliseconds(row.average_ms) %></td>
+          <td class="last-called"><%= row.last_called_at ? "#{time_ago_in_words(row.last_called_at)} ago" : "never" %></td>
+          <td class="last-status"><%= row.last_status ? status_pill(row.last_status) : "—" %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<% if @stats.unmatched.positive? %>
+  <p class="unmatched"><%= pluralize(@stats.unmatched, "call") %> matched no endpoint (an address that does not exist, for example).
+    <%= link_to "Show them", admin_api_requests_path(route: ApiMonitor::Log::UNMATCHED) %></p>
+<% end %>
+
+<p class="state-help muted">
+  States look at the last 24 hours.
+  <strong>idle</strong>: nothing was recorded.
+  <strong>healthy</strong>: it was called and never answered with a server error (a caller's mistakes do not count).
+  <strong>degraded</strong>: it failed on the server earlier, but its latest call was fine.
+  <strong>failing</strong>: its latest call failed on the server.
+</p>

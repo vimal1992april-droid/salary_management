@@ -1,0 +1,76 @@
+<% content_for :title, "Calls" %>
+<p class="crumbs"><%= link_to "API monitor", admin_api_monitor_path %> / Calls</p>
+<h1>Calls <span class="muted count-note filters-summary"><%= pluralize(number_with_delimiter(@result.total), "call") %></span></h1>
+
+<%= form_with url: admin_api_requests_path, method: :get, class: "filters" do %>
+  <label>Method
+    <select name="http_method">
+      <option value="">any</option>
+      <% ApiMonitor::Log::METHODS.first(5).each do |method| %>
+        <option value="<%= method %>"<%= " selected" if @filters[:http_method].to_s.upcase == method %>><%= method %></option>
+      <% end %>
+    </select>
+  </label>
+  <label>Status
+    <select name="status">
+      <option value="">any</option>
+      <% %w[2xx 3xx 4xx 5xx].each do |status_class| %>
+        <option value="<%= status_class %>"<%= " selected" if @filters[:status].to_s.downcase == status_class %>><%= status_class %></option>
+      <% end %>
+    </select>
+  </label>
+  <label>Endpoint
+    <select name="route">
+      <option value="">any</option>
+      <option value="<%= ApiMonitor::Log::UNMATCHED %>"<%= " selected" if @filters[:route] == ApiMonitor::Log::UNMATCHED %>>matched no endpoint</option>
+      <% @routes.each do |route| %>
+        <option value="<%= route %>"<%= " selected" if @filters[:route] == route %>><%= route %></option>
+      <% end %>
+    </select>
+  </label>
+  <label>Search
+    <input type="text" name="q" value="<%= @filters[:q] %>" placeholder="path or query string">
+  </label>
+  <label>User id
+    <input type="text" name="user_id" value="<%= @filters[:user_id] %>" size="5" inputmode="numeric">
+  </label>
+  <label>Slower than (ms)
+    <input type="text" name="min_duration" value="<%= @filters[:min_duration] %>" size="5" inputmode="decimal">
+  </label>
+  <button class="button inline" type="submit">Filter</button>
+  <% if @filters.any? %><%= link_to "Clear filters", admin_api_requests_path %><% end %>
+<% end %>
+
+<% if @result.records.empty? %>
+  <div class="card empty">
+    <%= @filters.any? ? "No calls match these filters." : "No calls recorded yet." %>
+    <% unless @filters.any? %><br><span class="muted">Calls to /api appear here once something makes one (and while recording is on).</span><% end %>
+  </div>
+<% else %>
+  <div class="card flush scroll">
+    <table class="data calls">
+      <thead>
+        <tr><th>When</th><th>Method</th><th>Path</th><th>Status</th><th class="num">Time</th><th>User</th></tr>
+      </thead>
+      <tbody>
+        <% @result.records.each do |call| %>
+          <tr>
+            <td class="time"><%= utc(call.created_at) %></td>
+            <td class="method"><span class="verb"><%= call.http_method %></span></td>
+            <td class="path mono"><%= link_to call.path, admin_api_request_path(call) %></td>
+            <td class="status"><%= status_pill(call.status) %></td>
+            <td class="duration num"><%= milliseconds(call.duration_ms) %></td>
+            <td class="user"><%= call.user_id ? (@emails[call.user_id] || "user ##{call.user_id} (removed)") : "anonymous" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Page <%= @result.page %> of <%= @result.total_pages %> &middot; <%= pluralize(number_with_delimiter(@result.total), "call") %></span>
+    <span class="spacer"></span>
+    <% if @result.page > 1 %><%= link_to "← Newer", admin_api_requests_path(request.query_parameters.merge("page" => @result.page - 1)) %><% end %>
+    <% if @result.page < @result.total_pages %><%= link_to "Older →", admin_api_requests_path(request.query_parameters.merge("page" => @result.page + 1)) %><% end %>
+  </div>
+<% end %>

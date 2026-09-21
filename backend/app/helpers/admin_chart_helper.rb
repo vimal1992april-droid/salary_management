@@ -59,7 +59,7 @@ module AdminChartHelper
   end
 
   # A ring divided in proportion, with a legend that gives each share: for a few parts of a whole.
-  def donut_chart(rows, title:)
+  def donut_chart(rows, title:, colors: PALETTE)
     total = rows.sum { |row| row[:value] }
     return no_data(title) if total.zero?
 
@@ -68,7 +68,7 @@ module AdminChartHelper
     offset = 0.0
     slices = rows.each_with_index.filter_map do |row, index|
       length = row[:value].to_f / total * circumference
-      slice = tag.circle(class: "slice", cx: centre, cy: centre, r: DONUT[:radius], fill: "none", stroke: color(index),
+      slice = tag.circle(class: "slice", cx: centre, cy: centre, r: DONUT[:radius], fill: "none", stroke: color(colors, index),
                          "stroke-width": DONUT[:stroke], "stroke-dasharray": "#{length.round(2)} #{(circumference - length).round(2)}",
                          "stroke-dashoffset": (-offset).round(2), transform: "rotate(-90 #{centre} #{centre})") { tag.title(tooltip(row)) }
       offset += length
@@ -78,7 +78,7 @@ module AdminChartHelper
 
     legend = tag.ul(class: "legend") do
       safe_join(rows.each_with_index.map do |row, index|
-        tag.li(safe_join([ tag.span("", class: "swatch", style: "background: #{color(index)}"),
+        tag.li(safe_join([ tag.span("", class: "swatch", style: "background: #{color(colors, index)}"),
                            " #{row[:label]} #{number_with_delimiter(row[:value])} (#{(row[:value] * 100.0 / total).round}%)" ]))
       end)
     end
@@ -108,7 +108,7 @@ module AdminChartHelper
     "#{row[:label]}: #{number_with_delimiter(row[:value])}"
   end
 
-  def color(index)
-    PALETTE[index % PALETTE.size]
+  def color(colors, index)
+    colors[index % colors.size]
   end
 end

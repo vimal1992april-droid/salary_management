@@ -16,6 +16,11 @@ Rails.application.routes.draw do
     get "tables", to: "tables#index", as: :tables
     get "tables/:table", to: "tables#show", as: :table, constraints: { table: /[a-z_]+/ }
     get "tables/:table/:id", to: "records#show", as: :record, constraints: { table: /[a-z_]+/, id: %r{[^/]+} }
+
+    # Which APIs exist and how they are doing, and every recorded call with its payloads.
+    get "api", to: "api_monitor#show", as: :api_monitor
+    get "api/requests", to: "api_requests#index", as: :api_requests
+    get "api/requests/:id", to: "api_requests#show", as: :api_request, constraints: { id: /\d+/ }
   end
 
   namespace :api do

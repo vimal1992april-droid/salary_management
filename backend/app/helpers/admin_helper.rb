@@ -33,6 +33,31 @@ module AdminHelper
     amount.nil? ? "\u2014" : number_with_precision(amount, precision: 0, delimiter: ",")
   end
 
+  # The HTTP status as a coloured chip; the class of the status ("4xx") picks the colour.
+  def status_pill(status)
+    tag.span(status, class: "status status-#{status / 100}xx")
+  end
+
+  # An endpoint's state (idle, healthy, degraded, failing) as a coloured chip.
+  def state_pill(state)
+    tag.span(state, class: "pill #{state}")
+  end
+
+  def utc(time)
+    time.utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+  end
+
+  def milliseconds(value)
+    value.nil? ? "—" : "#{number_with_precision(value, precision: 1)} ms"
+  end
+
+  # A recorded payload as readable JSON; anything that is not JSON (a note that the body was not kept) as it is.
+  def pretty_payload(text)
+    JSON.pretty_generate(JSON.parse(text))
+  rescue JSON::ParserError
+    text
+  end
+
   def row_count(total)
     "#{number_with_delimiter(total)} #{'row'.pluralize(total)}"
   end
