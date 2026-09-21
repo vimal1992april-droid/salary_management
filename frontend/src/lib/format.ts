@@ -51,3 +51,10 @@ export function formatPercentChange(previous: string | undefined, next: string |
   const text = Number.isInteger(percent) ? String(percent) : percent.toFixed(1)
   return `${percent > 0 ? '+' : ''}${text}%`
 }
+
+/** A USD figure rounded to whole dollars, which is precise enough for totals and statistics. */
+export function formatUsd(amount: string | null | undefined): string {
+  if (amount === null || amount === undefined) return DASH
+  const value = Number(amount)
+  return Number.isFinite(value) ? formatMoney(String(Math.round(value)), 'USD') : DASH
+}

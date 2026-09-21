@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AuthGate from './auth/AuthGate'
 import LoginPage from './auth/LoginPage'
@@ -5,8 +6,10 @@ import AppLayout from './components/AppLayout'
 import EmployeeDetailPage from './features/employees/EmployeeDetailPage'
 import EmployeeFormPage from './features/employees/EmployeeFormPage'
 import EmployeesPage from './features/employees/EmployeesPage'
-import InsightsPage from './pages/InsightsPage'
 import NotFoundPage from './pages/NotFoundPage'
+
+// The dashboard brings the chart library, so it is only downloaded when someone opens it.
+const InsightsPage = lazy(() => import('./features/insights/InsightsPage'))
 
 export default function App() {
   return (

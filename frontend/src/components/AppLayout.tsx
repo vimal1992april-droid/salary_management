@@ -1,9 +1,11 @@
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import CircularProgress from '@mui/material/CircularProgress'
 import Container from '@mui/material/Container'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
+import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useSession, useSignOut } from '../auth/session'
 
@@ -46,7 +48,9 @@ export default function AppLayout() {
         </Toolbar>
       </AppBar>
       <Container component="main" maxWidth="xl" sx={{ py: 3 }}>
-        <Outlet />
+        <Suspense fallback={<CircularProgress aria-label="Loading the page" />}>
+          <Outlet />
+        </Suspense>
       </Container>
     </Box>
   )
