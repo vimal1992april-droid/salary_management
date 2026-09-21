@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatMoney, formatNumber, formatPercentChange } from './format'
+import { formatDate, formatMoney, formatNumber, formatPercentChange, formatUsd } from './format'
 
 describe('formatMoney', () => {
   it('formats a whole amount in its own currency with no decimals', () => {
@@ -52,5 +52,19 @@ describe('formatPercentChange', () => {
     expect(formatPercentChange('0', '100')).toBe('—')
     expect(formatPercentChange('abc', '100')).toBe('—')
     expect(formatPercentChange('100', undefined)).toBe('—')
+  })
+})
+
+describe('formatUsd', () => {
+  it('rounds a USD figure to whole dollars, which is enough for statistics and totals', () => {
+    expect(formatUsd('84486.13')).toBe('$84,486')
+    expect(formatUsd('804054518.91')).toBe('$804,054,519')
+    expect(formatUsd('0.4')).toBe('$0')
+  })
+
+  it('shows a dash when there is no figure', () => {
+    expect(formatUsd(undefined)).toBe('—')
+    expect(formatUsd(null)).toBe('—')
+    expect(formatUsd('abc')).toBe('—')
   })
 })

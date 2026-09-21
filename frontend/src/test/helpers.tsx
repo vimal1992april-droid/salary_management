@@ -1,11 +1,12 @@
 import { render } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { MemoryRouter } from 'react-router-dom'
-import type { EmployeeList } from '../api/employees'
+import type { Employee, EmployeeList } from '../api/employees'
 import App from '../App'
 import { Providers } from '../providers'
 import { createQueryClient } from '../queryClient'
 import { lookups, pageOf } from './fixtures'
+import { distribution, highestPaid, lowestPaid, outliers, overview, statsByGroup } from './insightsFixtures'
 import LocationSpy from './LocationSpy'
 import { server } from './server'
 
@@ -39,6 +40,35 @@ export function mockDirectory(respond: (params: URLSearchParams) => EmployeeList
       const result = respond(params)
       return result instanceof Response ? result : HttpResponse.json(result)
     }),
+  )
+  return requests
+}
+
+type InsightOverrides = Partial<Record<'overview' | 'stats' | 'distribution' | 'topEarners' | 'outliers', () => Response>>
+
+/**
+ * Serves every insight endpoint with the fixtures, and records each request the dashboard makes.
+ * A section can be made to fail (or answer differently) by overriding its handler.
+ */
+export function mockInsights(overrides: InsightOverrides = {}) {
+  const requests: URL[] = []
+  const answer = (name: keyof InsightOverrides, body: unknown) => (overrides[name] ? overrides[name]!() : HttpResponse.json({ data: body }))
+
+  server.use(
+    http.get('*/api/insights/overview', ({ request }) => (requests.push(new URL(request.url)), answer('overview', overview))),
+    http.get('*/api/insights/salary_stats', ({ request }) => {
+      const url = new URL(request.url)
+      requests.push(url)
+      return answer('stats', statsByGroup[url.searchParams.get('group_by') ?? 'country'])
+    }),
+    http.get('*/api/insights/distribution', ({ request }) => (requests.push(new URL(request.url)), answer('distribution', distribution))),
+    http.get('*/api/insights/top_earners', ({ request }) => {
+      const url = new URL(request.url)
+      requests.push(url)
+      const list: Employee[] = url.searchParams.get('direction') === 'asc' ? lowestPaid : highestPaid
+      return answer('topEarners', list)
+    }),
+    http.get('*/api/insights/outliers', ({ request }) => (requests.push(new URL(request.url)), answer('outliers', outliers))),
   )
   return requests
 }
