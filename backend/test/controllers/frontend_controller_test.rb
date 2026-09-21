@@ -74,6 +74,8 @@ class FrontendControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
     assert_includes response.body, "The frontend has not been built"
+    # In development the app is served by Vite, not by Rails, and opening the API's port is an easy mistake.
+    assert_includes response.body, "http://localhost:5173"
   ensure
     Rails.configuration.x.frontend_index = original
   end
