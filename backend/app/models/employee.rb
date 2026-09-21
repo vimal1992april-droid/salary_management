@@ -5,6 +5,7 @@ class Employee < ApplicationRecord
   belongs_to :department
   belongs_to :job_title
   belongs_to :currency, foreign_key: :currency_code, primary_key: :code, inverse_of: :employees
+  has_many :salary_changes, dependent: :restrict_with_error
 
   enum :status, { active: "active", inactive: "inactive" }, default: "active", validate: true
 

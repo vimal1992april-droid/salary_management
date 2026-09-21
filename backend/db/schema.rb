@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_100007) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_21_100008) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -74,6 +74,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100007) do
     t.check_constraint "level >= 1", name: "job_titles_level_positive"
   end
 
+  create_table "salary_changes", force: :cascade do |t|
+    t.bigint "changed_by_id"
+    t.datetime "created_at", null: false
+    t.date "effective_on", null: false
+    t.bigint "employee_id", null: false
+    t.decimal "new_amount", precision: 14, scale: 2, null: false
+    t.string "new_currency_code", limit: 3, null: false
+    t.decimal "previous_amount", precision: 14, scale: 2, null: false
+    t.string "previous_currency_code", limit: 3, null: false
+    t.string "reason", limit: 500, null: false
+    t.datetime "updated_at", null: false
+    t.index ["changed_by_id"], name: "index_salary_changes_on_changed_by_id"
+    t.index ["employee_id", "effective_on"], name: "index_salary_changes_on_employee_id_and_effective_on"
+    t.index ["employee_id"], name: "index_salary_changes_on_employee_id"
+    t.check_constraint "new_amount > 0::numeric", name: "salary_changes_new_amount_positive"
+    t.check_constraint "previous_amount > 0::numeric", name: "salary_changes_previous_amount_positive"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -96,5 +114,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_100007) do
   add_foreign_key "employees", "currencies", column: "currency_code", primary_key: "code"
   add_foreign_key "employees", "departments"
   add_foreign_key "employees", "job_titles"
+  add_foreign_key "salary_changes", "currencies", column: "new_currency_code", primary_key: "code"
+  add_foreign_key "salary_changes", "currencies", column: "previous_currency_code", primary_key: "code"
+  add_foreign_key "salary_changes", "employees"
+  add_foreign_key "salary_changes", "users", column: "changed_by_id"
   add_foreign_key "sessions", "users"
 end

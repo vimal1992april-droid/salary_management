@@ -8,6 +8,8 @@ Rails.application.routes.draw do
     get "lookups", to: "lookups#show"
 
     resource :session, only: %i[show create destroy]
-    resources :employees, only: %i[index show create update]
+    resources :employees, only: %i[index show create update] do
+      resources :salary_changes, only: %i[index create]
+    end
   end
 end
