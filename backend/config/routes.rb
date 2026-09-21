@@ -7,6 +7,13 @@ Rails.application.routes.draw do
     get "health", to: "health#show"
     get "lookups", to: "lookups#show"
 
+    scope "insights", controller: "insights", as: "insights" do
+      get "overview"
+      get "salary_stats"
+      get "distribution"
+      get "top_earners"
+    end
+
     resource :session, only: %i[show create destroy]
     resources :employees, only: %i[index show create update] do
       resources :salary_changes, only: %i[index create]
