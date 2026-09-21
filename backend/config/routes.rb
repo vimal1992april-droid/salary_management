@@ -11,6 +11,11 @@ Rails.application.routes.draw do
     get "login", to: "sessions#new"
     post "login", to: "sessions#create"
     delete "logout", to: "sessions#destroy"
+
+    # A read-only look at every table. The table name in the URL is only ever compared with a fixed list.
+    get "tables", to: "tables#index", as: :tables
+    get "tables/:table", to: "tables#show", as: :table, constraints: { table: /[a-z_]+/ }
+    get "tables/:table/:id", to: "records#show", as: :record, constraints: { table: /[a-z_]+/, id: %r{[^/]+} }
   end
 
   namespace :api do

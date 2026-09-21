@@ -7,8 +7,15 @@ module Admin
     protect_from_forgery with: :exception
     layout "admin"
 
+    helper AdminHelper
+
     before_action :require_admin
     helper_method :current_admin
+
+    rescue_from ActiveRecord::RecordNotFound do |error|
+      @message = error.message
+      render "admin/shared/not_found", status: :not_found
+    end
 
     private
 

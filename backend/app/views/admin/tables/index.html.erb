@@ -1,0 +1,17 @@
+<% content_for :title, "Data" %>
+<h1>Data</h1>
+<p class="muted">Every table the system keeps. Read-only: nothing here can be changed.</p>
+<div class="card flush">
+  <table class="data tables">
+    <thead><tr><th>Table</th><th class="num">Rows</th><th class="num">Columns</th></tr></thead>
+    <tbody>
+      <% @tables.each do |table, count| %>
+        <tr>
+          <td><%= link_to table.title, admin_table_path(table.name) %> <span class="muted mono"><%= table.name %></span></td>
+          <td class="num count"><%= number_with_delimiter(count) %></td>
+          <td class="num muted"><%= table.columns.size %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

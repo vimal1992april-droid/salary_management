@@ -1,0 +1,26 @@
+<% content_for :title, "#{@table.title} ##{@record[@table.primary_key]}" %>
+<p class="crumbs"><%= link_to "Data", admin_tables_path %> / <%= link_to @table.title, admin_table_path(@table.name) %></p>
+<h1><%= @table.title %> #<%= @record[@table.primary_key] %></h1>
+
+<div class="card">
+  <dl class="record">
+    <% @table.attributes_of(@record).each do |column, value| %>
+      <dt><%= column %></dt>
+      <dd><%= cell_value(@table, column, value, full: true) %></dd>
+    <% end %>
+  </dl>
+</div>
+
+<% if @related.any? %>
+  <h2>Points at this record</h2>
+  <ul class="related card">
+    <% @related.each do |related| %>
+      <li>
+        <%= link_to admin_table_path(related[:table], filter: { related[:column] => @record[@table.primary_key] }) do %>
+          <%= related[:table] %> <span class="pill"><%= number_with_delimiter(related[:count]) %></span>
+        <% end %>
+        <span class="muted">through <span class="mono"><%= related[:column] %></span></span>
+      </li>
+    <% end %>
+  </ul>
+<% end %>

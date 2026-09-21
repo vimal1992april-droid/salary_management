@@ -1,0 +1,59 @@
+<% content_for :title, @table.title %>
+<p class="crumbs"><%= link_to "Data", admin_tables_path %> / <%= @table.title %></p>
+<h1><%= @table.title %> <span class="muted count-note"><%= row_count(@result.total) %></span></h1>
+
+<%= form_with url: admin_table_path(@table.name), method: :get, class: "search" do %>
+  <%= search_field_tag :q, params[:q], placeholder: "Search the text columns, or an id", "aria-label": "Search" %>
+  <% %w[sort direction per_page].each do |name| %>
+    <%= hidden_field_tag name, params[name], id: nil if params[name].present? %>
+  <% end %>
+  <% @filters.each do |column, value| %>
+    <%= hidden_field_tag "filter[#{column}]", value, id: nil %>
+  <% end %>
+  <button class="button inline" type="submit">Search</button>
+  <% if params[:q].present? %><%= link_to "Clear search", table_path_with(@table, "q" => nil, "page" => nil) %><% end %>
+<% end %>
+
+<% if @filters.any? %>
+  <p class="filters">
+    Only rows where
+    <% @filters.each do |column, value| %>
+      <strong class="mono"><%= column %></strong> = <strong class="mono"><%= value %></strong>
+    <% end %>
+    &middot; <%= link_to "Show all rows", admin_table_path(@table.name, request.query_parameters.except("filter", "page")) %>
+  </p>
+<% end %>
+
+<% if @result.records.empty? %>
+  <div class="card empty"><%= params[:q].present? || @filters.any? ? "No rows match." : "No rows yet." %></div>
+<% else %>
+  <div class="card flush scroll">
+    <table class="data">
+      <thead>
+        <tr><% @table.columns.each do |column| %><th><%= sort_link(@table, column) %></th><% end %></tr>
+      </thead>
+      <tbody>
+        <% @result.records.each do |record| %>
+          <tr>
+            <% @table.columns.each do |column| %>
+              <td<%= raw ' class="num"' if record[column].is_a?(Numeric) %>>
+                <% if column == @table.primary_key %>
+                  <%= link_to record[column], admin_record_path(@table.name, record[column]) %>
+                <% else %>
+                  <%= cell_value(@table, column, record[column]) %>
+                <% end %>
+              </td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <span>Page <%= @result.page %> of <%= @result.total_pages %> &middot; <%= row_count(@result.total) %></span>
+    <span class="spacer"></span>
+    <% if @result.page > 1 %><%= link_to "\u2190 Previous", table_path_with(@table, "page" => @result.page - 1) %><% end %>
+    <% if @result.page < @result.total_pages %><%= link_to "Next \u2192", table_path_with(@table, "page" => @result.page + 1) %><% end %>
+  </div>
+<% end %>

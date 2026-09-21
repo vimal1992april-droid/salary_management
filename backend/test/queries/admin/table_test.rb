@@ -23,8 +23,9 @@ class Admin::TableTest < ActiveSupport::TestCase
     assert_equal "Job titles", Admin::Table.find!("job_titles").title
   end
 
-  test "shows the columns in database order" do
+  test "shows the key first, the timestamps last and the rest alphabetically, however the database was built" do
     assert_equal %w[id name created_at updated_at], Admin::Table.find!("departments").columns
+    assert_equal %w[code name rate_as_of rate_to_usd created_at updated_at], Admin::Table.find!("currencies").columns
   end
 
   test "never exposes a password digest" do
