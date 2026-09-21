@@ -4,7 +4,8 @@ class FrontendController < ApplicationController
   allow_unauthenticated_access
 
   def index
-    index = Rails.configuration.x.frontend_index
+    # The setting is read once, when a server starts, so fall back for one that started before it existed.
+    index = Rails.configuration.x.frontend_index || Rails.public_path.join("index.html")
 
     if File.exist?(index)
       send_file index, type: "text/html", disposition: "inline"
