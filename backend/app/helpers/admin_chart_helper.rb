@@ -5,7 +5,7 @@ module AdminChartHelper
   PALETTE = %w[#2563eb #7c3aed #0891b2 #16a34a #d97706 #dc2626 #db2777 #4b5563].freeze
 
   BAR = { width: 640, label_width: 170, max_bar: 400, row: 28, bar_height: 18, label_limit: 24 }.freeze
-  COLUMN = { width: 640, height: 260, left: 44, right: 10, top: 20, bottom: 44, fill: 0.7, max_labels: 12 }.freeze
+  COLUMN = { width: 640, height: 260, left: 44, right: 10, top: 20, bottom: 44, fill: 0.7, max_labels: 12, char_width: 7, label_gap: 6 }.freeze
   DONUT = { size: 160, radius: 60, stroke: 28 }.freeze
 
   # Horizontal bars, one row each: for categories with long names (departments, countries).
@@ -34,7 +34,10 @@ module AdminChartHelper
     plot_width = COLUMN[:width] - COLUMN[:left] - COLUMN[:right]
     plot_height = COLUMN[:height] - COLUMN[:top] - COLUMN[:bottom]
     slot = plot_width.to_f / rows.size
-    label_every = (rows.size.to_f / COLUMN[:max_labels]).ceil
+    # Every label if they fit; otherwise every second, third, ...: by how many columns there are, and by how wide the
+    # widest label is compared with the space between two columns.
+    widest = rows.map { |row| row[:label].to_s.length }.max
+    label_every = [ (rows.size.to_f / COLUMN[:max_labels]).ceil, ((widest * COLUMN[:char_width] + COLUMN[:label_gap]) / slot).ceil, 1 ].max
     baseline = COLUMN[:top] + plot_height
 
     marks = [ tag.text(number_with_delimiter(max), class: "axis", x: COLUMN[:left] - 6, y: COLUMN[:top] + 4, "text-anchor": "end"),
