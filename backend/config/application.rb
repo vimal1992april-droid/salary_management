@@ -32,6 +32,12 @@ module Backend
     # The built React app that FrontendController serves (copied into public/ by the Docker build).
     config.x.frontend_index = config.root.join("public", "index.html")
 
+    # By default the static file server answers "/" with public/index.html and a one-year cache header, bypassing
+    # FrontendController's no-cache. That would leave browsers holding an old shell that names assets a later deploy
+    # has removed. Pointing the directory index at a file that never exists sends "/" to the controller instead;
+    # the hashed files under /assets/ are still served, and cached for a year, by the static file server.
+    config.public_file_server.index_name = "index.disabled"
+
     # API-only apps drop the cookie middleware; the HR session lives in a signed, httpOnly cookie.
     config.middleware.use ActionDispatch::Cookies
   end

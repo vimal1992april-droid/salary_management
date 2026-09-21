@@ -25,8 +25,9 @@ Rails.application.routes.draw do
   end
 
   # Every other page is a client-side route of the React app. Not /api, not health checks, and not anything
-  # that looks like a file (a missing asset should be a 404, not the app shell).
+  # that looks like a file (a missing asset should be a 404, not the app shell). The Accept header is deliberately
+  # not consulted: a browser sends a long list, but curl and health checkers send just */*, and they need pages too.
   get "*path", to: "frontend#index", constraints: lambda { |request|
-    request.format.html? && !request.path.start_with?("/api", "/up", "/rails") && !request.path.match?(/\.\w+\z/)
+    !request.path.start_with?("/api", "/up", "/rails") && !request.path.match?(/\.\w+\z/)
   }
 end
