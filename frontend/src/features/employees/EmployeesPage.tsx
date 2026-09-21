@@ -1,3 +1,4 @@
+import AddIcon from '@mui/icons-material/Add'
 import DownloadIcon from '@mui/icons-material/Download'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -7,6 +8,7 @@ import Paper from '@mui/material/Paper'
 import TableContainer from '@mui/material/TableContainer'
 import TablePagination from '@mui/material/TablePagination'
 import Typography from '@mui/material/Typography'
+import { Link as RouterLink } from 'react-router-dom'
 import { exportUrl } from '../../api/employees'
 import { formatNumber } from '../../lib/format'
 import DirectoryFilters from './DirectoryFilters'
@@ -36,9 +38,14 @@ export default function EmployeesPage() {
         <Typography variant="h4" component="h1">
           Employees
         </Typography>
-        <Button component="a" href={exportUrl(toApiParams(state))} variant="outlined" startIcon={<DownloadIcon />}>
-          Export CSV
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button component="a" href={exportUrl(toApiParams(state))} variant="outlined" startIcon={<DownloadIcon />}>
+            Export CSV
+          </Button>
+          <Button component={RouterLink} to="/employees/new" variant="contained" startIcon={<AddIcon />}>
+            Add employee
+          </Button>
+        </Box>
       </Box>
 
       <DirectoryFilters state={state} lookups={lookups.data} onChange={update} onClear={clearFilters} />

@@ -1,4 +1,5 @@
 import type { FieldErrors } from '../../api/client'
+import { cleanAmount, isPositiveAmount } from '../../lib/amount'
 import { formatDate } from '../../lib/format'
 
 export type SalaryChangeValues = { amount: string; currency: string; effectiveOn: string; reason: string }
@@ -13,9 +14,6 @@ type Context = {
 
 export const MAX_REASON_LENGTH = 500
 
-/** Drops thousands separators and spaces, so "110,000" and "110 000" are accepted. */
-const cleanAmount = (value: string) => value.replace(/[,\s]/g, '')
-
 /** Checks the form the way the API will, so the user hears about a problem before anything is sent. */
 export function validateSalaryChange(values: SalaryChangeValues, { current, hireDate, today }: Context): SalaryChangeErrors {
   const errors: SalaryChangeErrors = {}
@@ -23,7 +21,7 @@ export function validateSalaryChange(values: SalaryChangeValues, { current, hire
   const amount = cleanAmount(values.amount)
   if (amount === '') {
     errors.amount = 'Enter the new salary'
-  } else if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) {
+  } else if (!isPositiveAmount(amount)) {
     errors.amount = 'Enter an amount greater than zero'
   } else if (Number(amount) === Number(current.amount) && values.currency === current.currency) {
     errors.amount = 'This is the same as the current salary'

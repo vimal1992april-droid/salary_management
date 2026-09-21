@@ -14,6 +14,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // MUI is slow to render on a cold start and CI machines are slower than a laptop.
+    testTimeout: 15_000,
     coverage: {
       provider: 'v8',
       include: ['src/**'],

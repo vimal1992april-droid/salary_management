@@ -47,3 +47,12 @@ export function exportUrl({ page: _page, per_page: _perPage, ...filters }: Direc
 
 export const getEmployee = (id: string | number) =>
   apiFetch<{ data: Employee }>(`/api/employees/${id}`).then((body) => body.data)
+
+/** The fields of an employee that can be sent to the API; every value is a string, as typed in a form. */
+export type EmployeeInput = Record<string, string>
+
+export const createEmployee = (body: { employee: EmployeeInput }) =>
+  apiFetch<{ data: Employee }>('/api/employees', { method: 'POST', json: body }).then((result) => result.data)
+
+export const updateEmployee = (id: string | number, body: { employee: EmployeeInput }) =>
+  apiFetch<{ data: Employee }>(`/api/employees/${id}`, { method: 'PATCH', json: body }).then((result) => result.data)

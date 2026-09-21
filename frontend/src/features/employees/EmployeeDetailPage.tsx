@@ -8,12 +8,13 @@ import Paper from '@mui/material/Paper'
 import Snackbar from '@mui/material/Snackbar'
 import Typography from '@mui/material/Typography'
 import { useState } from 'react'
-import { Link as RouterLink, useParams } from 'react-router-dom'
+import { Link as RouterLink, useLocation, useParams } from 'react-router-dom'
 import { ApiError } from '../../api/client'
 import type { Employee } from '../../api/employees'
 import { formatDate, formatMoney } from '../../lib/format'
 import ChangeSalaryDialog from './ChangeSalaryDialog'
 import SalaryHistory from './SalaryHistory'
+import StatusControl from './StatusControl'
 import { useEmployee } from './useEmployee'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -81,7 +82,9 @@ export default function EmployeeDetailPage() {
   const { id = '' } = useParams()
   const employee = useEmployee(id)
   const [changingSalary, setChangingSalary] = useState(false)
-  const [notice, setNotice] = useState('')
+  // A page that redirects here after saving passes a confirmation to show once.
+  const location = useLocation()
+  const [notice, setNotice] = useState(() => (location.state as { notice?: string } | null)?.notice ?? '')
 
   if (employee.isPending) {
     return (
@@ -135,6 +138,10 @@ export default function EmployeeDetailPage() {
           variant="outlined"
         />
         <Box sx={{ flexGrow: 1 }} />
+        <Button component={RouterLink} to={`/employees/${data.id}/edit`} variant="outlined">
+          Edit
+        </Button>
+        <StatusControl employee={data} onChanged={setNotice} />
         <Button variant="contained" onClick={() => setChangingSalary(true)}>
           Change salary
         </Button>

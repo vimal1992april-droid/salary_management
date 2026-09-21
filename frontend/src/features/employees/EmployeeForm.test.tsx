@@ -30,23 +30,30 @@ function mockServer(options: { failure?: Response } = {}) {
       sent.push({ method: 'PATCH', body })
       if (options.failure) return options.failure
       employee = { ...employee, ...body.employee } as Employee
+      employee.full_name = `${employee.first_name} ${employee.last_name}` // as the API's serializer does
       return HttpResponse.json({ data: employee })
     }),
   )
   return sent
 }
 
-async function fillNewEmployee(user: User, over: { email?: string } = {}) {
+/** Puts text into a field in one step: much faster than typing each character through MUI. */
+async function enter(user: User, label: string, text: string) {
+  await user.click(screen.getByLabelText(label))
+  await user.paste(text)
+}
+
+async function fillNewEmployee(user: User) {
   await screen.findByRole('option', { name: 'India' }) // the lookups have loaded
-  await user.type(screen.getByLabelText('Employee number'), 'E90001')
-  await user.type(screen.getByLabelText('First name'), 'Nikhil')
-  await user.type(screen.getByLabelText('Last name'), 'Rao')
-  await user.type(screen.getByLabelText('Email'), over.email ?? 'nikhil.rao@acme.example')
+  await enter(user, 'Employee number', 'E90001')
+  await enter(user, 'First name', 'Nikhil')
+  await enter(user, 'Last name', 'Rao')
+  await enter(user, 'Email', 'nikhil.rao@acme.example')
   await user.selectOptions(screen.getByLabelText('Country'), 'India')
   await user.selectOptions(screen.getByLabelText('Department'), 'Sales')
   await user.selectOptions(screen.getByLabelText('Job title'), 'Account Executive')
-  await user.type(screen.getByLabelText('Hire date'), '2026-05-01')
-  await user.type(screen.getByLabelText('Starting salary'), '1500000')
+  await enter(user, 'Hire date', '2026-05-01')
+  await enter(user, 'Starting salary', '1500000')
 }
 
 beforeEach(() => {
