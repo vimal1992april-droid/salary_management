@@ -15,10 +15,26 @@ class FrontendControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "tells the browser to check for a new shell each time, so a new deploy is picked up at once" do
-    get "/employees"
+  test "serves the app shell to a client that accepts anything, such as curl or a health check" do
+    # Browsers send a long Accept list; plain clients send just */*. Both must get the pages.
+    get "/employees", headers: { "Accept" => "*/*" }
 
-    assert_includes response.headers["Cache-Control"], "no-cache"
+    assert_response :success
+    assert_includes response.body, APP_SHELL
+  end
+
+  test "tells the browser to check for a new shell each time, so a new deploy is picked up at once" do
+    [ "/", "/employees" ].each do |path|
+      get path
+
+      assert_includes response.headers["Cache-Control"], "no-cache", "#{path} must not be cached"
+    end
+  end
+
+  test "never lets the static file server hand out the shell for /, where it would be cached for a year" do
+    # public/index.html would otherwise be served for "/" by the static middleware, bypassing the no-cache above,
+    # and a browser would keep an old shell that names assets a later deploy has removed.
+    assert_not_equal "index", Rails.configuration.public_file_server.index_name
   end
 
   test "does not answer for unknown API paths with the app shell" do
