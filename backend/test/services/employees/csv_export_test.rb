@@ -32,7 +32,8 @@ class Employees::CsvExportTest < ActiveSupport::TestCase
                                  country: create(:country, name: "India", currency: inr),
                                  department: create(:department, name: "Engineering"),
                                  job_title: create(:job_title, name: "Engineer"))
-    create(:employee, country: create(:country, currency: usd), salary_amount: 100)
+    # An explicit number: the factory's own sequence could hand out E00001 too, depending on which tests ran first.
+    create(:employee, employee_number: "E99999", country: create(:country, currency: usd), salary_amount: 100)
 
     row = parse(export(Employee.where(id: employee.id).preload(:country, :department, :job_title, :currency))).first
 
