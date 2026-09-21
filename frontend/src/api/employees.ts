@@ -44,3 +44,6 @@ export const listEmployees = (params: DirectoryParams) =>
 export function exportUrl({ page: _page, per_page: _perPage, ...filters }: DirectoryParams): string {
   return `/api/employees/export${toQueryString(filters as Record<string, QueryValue>)}`
 }
+
+export const getEmployee = (id: string | number) =>
+  apiFetch<{ data: Employee }>(`/api/employees/${id}`).then((body) => body.data)

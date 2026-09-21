@@ -39,3 +39,15 @@ const numberFormat = new Intl.NumberFormat('en-US')
 export function formatNumber(value: number): string {
   return numberFormat.format(value)
 }
+
+/** "+12.5%", "-11.1%" or "+10%": how much a value changed, to one decimal; a dash when it cannot be compared. */
+export function formatPercentChange(previous: string | undefined, next: string | undefined): string {
+  if (!previous || !next) return DASH
+  const before = Number(previous)
+  const after = Number(next)
+  if (!Number.isFinite(before) || !Number.isFinite(after) || before === 0) return DASH
+
+  const percent = Math.round(((after - before) / before) * 1000) / 10
+  const text = Number.isInteger(percent) ? String(percent) : percent.toFixed(1)
+  return `${percent > 0 ? '+' : ''}${text}%`
+}

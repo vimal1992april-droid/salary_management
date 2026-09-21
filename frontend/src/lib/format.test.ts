@@ -49,8 +49,8 @@ describe('formatPercentChange', () => {
   })
 
   it('is a dash when there is nothing sensible to compare', () => {
-    expect(formatPercentChange('0', '100')).toBe('—')
-    expect(formatPercentChange('abc', '100')).toBe('—')
-    expect(formatPercentChange('100', undefined)).toBe('—')
+    expect(formatPercentChange('0', '100')).toBe('â€”')
+    expect(formatPercentChange('abc', '100')).toBe('â€”')
+    expect(formatPercentChange('100', undefined)).toBe('â€”')
   })
 })
