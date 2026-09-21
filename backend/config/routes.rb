@@ -12,6 +12,7 @@ Rails.application.routes.draw do
       get "salary_stats"
       get "distribution"
       get "top_earners"
+      get "outliers"
     end
 
     resource :session, only: %i[show create destroy]

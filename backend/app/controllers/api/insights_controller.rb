@@ -23,7 +23,22 @@ module Api
       render json: { data: employees.map { |employee| EmployeeSerializer.new(employee) } }
     end
 
+    def outliers
+      render json: { data: Insights::Outliers.call(limit: params[:limit]).map { |outlier| outlier_json(outlier) } }
+    end
+
     private
+
+    def outlier_json(outlier)
+      {
+        employee: EmployeeSerializer.new(outlier[:employee]),
+        direction: outlier[:direction],
+        peer_count: outlier[:peer_count],
+        peer_median: outlier[:peer_median],
+        fences: { lower: outlier[:fences].first, upper: outlier[:fences].last },
+        deviation: outlier[:deviation]
+      }
+    end
 
     def filters
       params.permit(:country_id, :department_id, :job_title_id).to_h.symbolize_keys
