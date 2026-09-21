@@ -40,6 +40,13 @@ module ActionDispatch
     setup { Rails.cache.clear }
 
     # Signs in through the real login endpoint, so the session cookie is set exactly as in production.
+    # Signs in to the admin panel through its real sign-in page, so its session cookie is set as in production.
+    def sign_in_as_admin(admin = create(:user, :admin), password: "correct-horse-battery")
+      post admin_login_url, params: { email: admin.email, password: password }
+      assert_redirected_to admin_root_url
+      admin
+    end
+
     def sign_in(user = create(:user), password: "correct-horse-battery")
       post api_session_url, params: { email: user.email, password: password }, as: :json
       assert_response :created
