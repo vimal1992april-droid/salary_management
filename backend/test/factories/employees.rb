@@ -7,7 +7,7 @@ FactoryBot.define do
     country
     department
     job_title
-    currency { country.currency }
+    currency { country&.currency }
     hire_date { Date.new(2022, 3, 1) }
     salary_amount { 90_000 }
   end

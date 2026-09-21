@@ -3,6 +3,8 @@ class Currency < ApplicationRecord
 
   has_many :countries, foreign_key: :currency_code, primary_key: :code, inverse_of: :currency,
                        dependent: :restrict_with_error
+  has_many :employees, foreign_key: :currency_code, primary_key: :code, inverse_of: :currency,
+                       dependent: :restrict_with_error
 
   validates :code, format: { with: /\A[A-Z]{3}\z/ }, uniqueness: true
   validates :name, presence: true

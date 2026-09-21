@@ -68,9 +68,10 @@ class EmployeeTest < ActiveSupport::TestCase
   end
 
   test "the database rejects a non-positive salary even when validations are skipped" do
-    assert_raises(ActiveRecord::CheckViolation) do
-      build(:employee, salary_amount: -5).save!(validate: false)
-    end
+    employee = create(:employee)
+    employee.salary_amount = -5
+
+    assert_raises(ActiveRecord::CheckViolation) { employee.save!(validate: false) }
   end
 
   # --- hire date ------------------------------------------------------------
