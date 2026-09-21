@@ -47,8 +47,9 @@ requests, so production should be equal or better.
 CSV export: it is a 1.3 MB file download of all 10,000 rows rather than an interactive request, so the 300 ms
 target does not apply, and 0.7 s is acceptable for a file the user asks for explicitly.
 
-Other timings: seeding 10,000 employees takes about 3 s and adding their salary history about 1.5 s more; the backend
-test suite (249 tests) runs in about 4 s.
+Other timings, measured in the same environment: `bin/rails db:seed` takes about 3 s for the 10,000 employees and
+about 4 s when it also adds their salary history (both include about 2 s of Rails boot); the backend test suite
+(249 tests) runs in about 5 s, or about 13 s in a fresh container.
 
 ## What makes it fast
 

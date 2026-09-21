@@ -4,14 +4,16 @@ How we will build the salary management software: the decisions, the design, and
 **order of work**, which is test-first. Read [requirements.md](requirements.md) first for the *what* and *why*.
 This document is the *how*.
 
-> Status: **plan**. Nothing below is built yet except the empty Rails + React scaffold. Sections marked
-> *(decision)* are choices we made on purpose and can be challenged; the reasoning is next to each one.
+> Status: **the backend is built** (milestones 2 to 7 and the backend half of 12, see the table in §11);
+> the frontend and deployment are next. Where the build taught us something that changed the plan, the section
+> is updated and the change is listed in §17. The decisions in §2 were made on purpose and can be challenged;
+> the reasoning is next to each one.
 
 ---
 
 ## 1. Approach in one paragraph
 
-A **Rails 8 API** backed by **PostgreSQL** and a **React + TypeScript** single-page app, deployed as one
+A **Rails 8.1 API** (Ruby 3.4) backed by **PostgreSQL** and a **React + TypeScript** single-page app, deployed as one
 service (Rails serves the built React app, so there is one origin and no CORS). Every behaviour is
 built **test-first** in thin vertical slices (database → API → UI). Statistics are computed **in SQL**, not in
 Ruby or the browser. The 10,000-employee dataset comes from a **deterministic seed script** so the
@@ -21,7 +23,7 @@ demo, tests and performance checks all see the same data.
 
 | # | Decision | Alternatives considered | Why |
 |---|---|---|---|
-| D1 | **Rails 8 API-only + React SPA in one repo** (`backend/`, `frontend/`) | Rails full-stack with Hotwire; Next.js | The brief asks for a Rails backend and a React UI. A monorepo keeps history, CI and docs in one place. |
+| D1 | **Rails 8.1 API-only + React SPA in one repo** (`backend/`, `frontend/`) | Rails full-stack with Hotwire; Next.js | The brief asks for a Rails backend and a React UI. A monorepo keeps history, CI and docs in one place. |
 | D2 | **PostgreSQL** | SQLite, MySQL | Percentile functions (`percentile_cont`), `width_bucket` and trigram indexes make the analytics simple and fast. A managed Postgres is easy to deploy. |
 | D3 | **Serve the React build from Rails** (single deploy) | Vercel (UI) + Render (API) | One origin means httpOnly cookie auth works without CORS or cross-site cookie problems, and there is one thing to deploy and demo. |
 | D4 | **Cookie session auth**, single HR role | JWT in localStorage; full RBAC | httpOnly cookies are not readable by JS (safer for salary data). One persona means one role. |
@@ -144,38 +146,47 @@ JSON only, cookie session, all routes except `POST /api/session` and `GET /api/h
 | `POST /api/session` · `DELETE /api/session` · `GET /api/session` | Log in, log out, who am I |
 | `GET /api/lookups` | Countries, departments, job titles, currencies (for filters and forms) |
 | `GET /api/employees` | Directory: `q`, `country_id`, `department_id`, `job_title_id`, `status`, `sort`, `direction`, `page`, `per_page` (max 100). Returns `data` and `meta` (page, per_page, total). |
-| `POST /api/employees` · `GET/PATCH /api/employees/:id` | Create, read, edit (status changes included) |
-| `GET/POST /api/employees/:id/salary_changes` | Salary history; record a new change |
-| `GET /api/employees.csv` | *(Should)* Export the current filtered directory |
+| `POST /api/employees` · `GET/PATCH /api/employees/:id` | Create, read, edit personal and organisational fields and status (deactivate instead of delete). Salary, currency and employee number are read-only on PATCH: sending them is a 422 `read_only_field`, not silently ignored. |
+| `GET/POST /api/employees/:id/salary_changes` | Salary history, newest first; record a change (amount, optional new currency, effective date, reason). Attributed to the signed-in user; returns the new entry and the updated employee. |
+| `GET /api/employees/export` | Downloads the current filtered directory as CSV (all matches, not one page), safe against spreadsheet formula injection |
 | `GET /api/insights/overview` | Headcount, total payroll (USD), average salary, countries covered |
 | `GET /api/insights/salary_stats?group_by=country\|department\|job_title` | Count, min, P25, median, P75, max, mean per group |
 | `GET /api/insights/distribution?bucket_count=…` | Histogram of USD salaries |
 | `GET /api/insights/top_earners?direction=asc\|desc&limit=…` | Highest or lowest paid |
-| `GET /api/insights/outliers` | *(Should)* Employees outside their peer group's IQR fences |
+| `GET /api/insights/outliers?limit=…` | Employees paid outside their peer group's Tukey fences, biggest deviation first |
 
 Errors use one shape, `{ "error": { "code": "...", "message": "...", "details": {...} } }`, with correct
-status codes (401, 404, 422). The API is **not versioned**: there is one client and it ships with the server.
+status codes: 400 (`bad_request`, `invalid_parameter`), 401 (`unauthenticated`, `invalid_credentials`),
+404 (`not_found`), 422 (`validation_failed`, `read_only_field`) and 429 (`rate_limited`). The API is **not
+versioned**: there is one client and it ships with the server.
 
 ## 6. Backend structure
 
 ```
 backend/app/
-  controllers/api/     # thin: sessions, employees, salary_changes, lookups, insights, health
-  models/              # Employee, Country, Currency, Department, JobTitle, SalaryChange, User, Session
-  queries/             # Employees::Search  (filters + sort + pagination as one testable object)
-  services/            # Employees::ChangeSalary, Insights::Overview, Insights::SalaryStats,
-                       # Insights::Distribution, Insights::Outliers
-  serializers/         # EmployeeSerializer, SalaryChangeSerializer, ...
-backend/db/seeds/      # reference data + deterministic 10,000-employee generator
-backend/test/          # mirrors app/: models, queries, services, controllers (request tests), seeds
+  controllers/api/     # thin: sessions, employees, employee_exports, salary_changes, lookups, insights, health
+  controllers/concerns/# Authentication (cookie session), EmployeeSearchable (shared search params)
+  models/              # Employee, Country, Currency, Department, JobTitle, SalaryChange, User, Session, Current
+  queries/employees/   # Search: filters + text search + sort + pagination as one testable object
+  services/employees/  # ChangeSalary (transactional), CsvExport
+  services/insights/   # Population (who is counted, USD conversion), Overview, SalaryStats, Distribution,
+                       # TopEarners, Outliers
+  services/seeding/    # Catalog, ReferenceData, EmployeeGenerator, SalaryHistory, HrUser, Runner
+  serializers/         # EmployeeSerializer, SalaryChangeSerializer, UserSerializer
+backend/db/seeds.rb    # calls Seeding::Runner and creates the HR login
+backend/script/        # benchmark.rb (HTTP timing of every endpoint)
+backend/test/          # mirrors app/: models, queries, services, controllers (request tests), support, factories
 ```
 
 **Insight definitions (so tests and UI agree)**
 
 - All insight figures use **active** employees, with salaries converted to **USD** at the stored rate.
 - Percentiles use PostgreSQL `percentile_cont` (linear interpolation). Tests use small hand-computed datasets so expected values are exact.
-- **Outliers:** within each (job title, country) peer group of at least 5 active employees, flag salaries outside
-  `[Q1 − 1.5·IQR, Q3 + 1.5·IQR]`. Compared in local currency, so no FX is involved.
+- **Outliers:** within each (job title, country, currency) peer group of at least 5 active employees, flag salaries outside
+  `[Q1 − 1.5·IQR, Q3 + 1.5·IQR]`. The quartiles are taken over the whole group, the salary being judged included
+  (ten peers on 100k to 109k plus a 140k salary give fences of 95,000 and 115,000). Compared in local currency, so no FX
+  is involved. Results are ranked by `deviation`, the distance beyond the fence as a share of the peer median, which is
+  scale-free so INR and USD rank together.
 
 ## 7. Frontend structure
 
@@ -197,11 +208,15 @@ frontend/src/
 
 - One command (`bin/rails db:seed`) creates reference data and **exactly 10,000 employees**.
 - **Deterministic:** a fixed-seed `Random`, and names come from embedded lists rather than a gem, so every run produces the same data and the tests and screenshots are reproducible.
-- **Realistic:** about 8 countries (with currencies and static USD rates), 8 departments, about 30 job titles across levels.
-  Salary = title/level base × country cost factor × a bounded random spread, plus a few deliberate outliers so that feature has something to find.
-- **Fast:** built in memory and inserted with `insert_all` in batches of 1,000, with a target of a few seconds. There is no per-record `create`.
+- **Realistic:** 8 countries (each with a currency and a static USD rate), 8 departments and 28 job titles across levels.
+  Salary = title base × country cost factor × tenure × a bell-shaped spread, converted into the local currency, plus a
+  deliberate outlier every 500th employee so that feature has something to find. About 5% of employees are inactive.
+- **History:** about two thirds of the people employed for over a year get one to three past raises, worked out
+  backwards from their current salary so every history ends exactly at it (10,053 changes for 6,403 employees). Each
+  employee has their own random generator derived from the seed, so re-running is idempotent.
+- **Fast:** built in memory and inserted with `insert_all` in batches of 1,000. Measured: 10,000 employees in about 3 s including Rails boot. There is no per-record `create`.
 - **Idempotent:** re-running does not duplicate rows. The employee count is a parameter (`SEED_EMPLOYEES`, default 10,000) so tests use a small number.
-- Also seeds the demo HR user from environment variables, never hardcoded.
+- Also seeds the HR login from `HR_EMAIL` and `HR_PASSWORD`, never hardcoded. Local development gets a documented demo login; any other environment must supply the credentials.
 
 ## 9. Test-driven development
 
@@ -233,7 +248,7 @@ Rules: no production code without a failing test that demands it; one behaviour 
 - **Small explicit datasets.** A test creates only the rows it needs, so the expected value is obvious from reading it.
 - **Names are sentences:** `test "filters by country and status together"`; the failure message says what broke.
 - **One reason to fail** per test; Arrange–Act–Assert layout.
-- **Targets:** backend suite under ~30 s, frontend under ~15 s. If a test is slow, fix the test.
+- **Targets:** backend suite under ~30 s, frontend under ~15 s. If a test is slow, fix the test. Today the backend suite is 249 tests and runs in about 5 s (13 s in a fresh container).
 - **Coverage** is reported (SimpleCov, Vitest coverage) as a signal, not a goal. We check that core logic branches are covered, not a percentage.
 - **CI is the gate:** tests, RuboCop, Brakeman, ESLint/oxlint, type-check and build all run on every push.
 
@@ -256,30 +271,31 @@ Only then does the query object get written, one test at a time. The controller 
 - Data is small (10,000 rows), so the approach is **correct SQL, right indexes, and measurement**, not caching.
 - Aggregation and percentiles run in PostgreSQL; the browser never receives 10,000 rows. The list is paginated server-side.
 - Query-count assertions prevent N+1 regressions; `EXPLAIN ANALYZE` confirms each index is used.
-- A small benchmark script runs the directory and insight endpoints against the seeded 10,000 rows and records results in `docs/performance.md`. Target: p95 under ~300 ms.
+- A small benchmark script ([backend/script/benchmark.rb](../backend/script/benchmark.rb)) times every endpoint over HTTP against the seeded 10,000 rows. Target: p95 under ~300 ms.
 - We only add an index, cache or materialized view if a measurement shows the need, and the doc records why.
+- **Result:** every interactive endpoint is under 60 ms at p95, so no extra index, cache or materialised view was added. The numbers, the `EXPLAIN ANALYZE` plans and what to revisit at 100x the data are in [performance.md](performance.md).
 
 ## 11. Delivery plan (incremental commits)
 
 Each milestone is a vertical slice, built test-first, ending in a working, committed state.
 Commit messages use Conventional Commits (`docs:`, `test:`, `feat:`, `refactor:`, `chore:`, `ci:`).
 
-| # | Milestone | Tests come first for… | Outcome |
-|---|---|---|---|
-| 0 | **Docs** *(this step)* | n/a | Requirements, this plan, README |
-| 1 | **Tooling & CI** | A trivial passing test on each side proves the harness | FactoryBot, SimpleCov, RuboCop, Vitest + RTL + MSW; CI at repo root running everything |
-| 2 | **Reference data & Employee model** | Model validations, associations, money rules | Migrations and models for countries, currencies, departments, job titles, employees |
-| 3 | **Seed script** | Count, determinism, idempotency, validity | 10,000 realistic employees in seconds |
-| 4 | **Authentication** | Login/logout, 401 on protected routes, rate limiting | HR user can sign in; API is protected |
-| 5 | **Employees API** | `Employees::Search` (§9.4), CRUD request tests, 422 errors | Directory, create, edit, deactivate |
-| 6 | **Salary changes** | `ChangeSalary` transaction, history order, invalid input | Salary edits with an append-only history |
-| 7 | **Insights API** | Each statistic against hand-computed data; active-only; USD conversion | Overview, stats by group, distribution, top/bottom earners |
-| 8 | **Frontend shell** | Auth gate, routing, API client error handling | Login, layout, typed client |
-| 9 | **Employees UI** | Table states, filter → URL → request, form validation | Directory, create/edit, detail |
-| 10 | **Salary UI** | History rendering, change-salary form and validation | Change salary, see history |
-| 11 | **Insights dashboard** | KPI/table/chart rendering from fixtures, empty and error states | The HR manager's dashboard |
-| 12 | **Should-haves** | Outlier rules; CSV columns and filtering | Outliers view, CSV export |
-| 13 | **Ship** | Smoke test against the deployed URL | Dockerfile, deployment, performance notes, demo video, final README |
+| # | Milestone | Tests come first for… | Outcome | Status |
+|---|---|---|---|---|
+| 0 | **Docs** | n/a | Requirements, this plan, README | Done |
+| 1 | **Tooling & CI** | A trivial passing test on each side proves the harness | FactoryBot, SimpleCov, RuboCop, Brakeman; Vitest + RTL + MSW; CI at repo root | Backend and CI done; frontend test tooling comes with milestone 8 |
+| 2 | **Reference data & Employee model** | Model validations, associations, money rules | Migrations and models for countries, currencies, departments, job titles, employees | Done |
+| 3 | **Seed script** | Count, determinism, idempotency, validity | 10,000 realistic employees in seconds | Done, including salary history |
+| 4 | **Authentication** | Login/logout, 401 on protected routes, rate limiting | HR user can sign in; API is protected | Done |
+| 5 | **Employees API** | `Employees::Search` (§9.4), CRUD request tests, 422 errors | Directory, create, edit, deactivate | Done |
+| 6 | **Salary changes** | `ChangeSalary` transaction, history order, invalid input | Salary edits with an append-only history | Done |
+| 7 | **Insights API** | Each statistic against hand-computed data; active-only; USD conversion | Overview, stats by group, distribution, top/bottom earners | Done |
+| 8 | **Frontend shell** | Auth gate, routing, API client error handling | Login, layout, typed client | Next |
+| 9 | **Employees UI** | Table states, filter → URL → request, form validation | Directory, create/edit, detail | Planned |
+| 10 | **Salary UI** | History rendering, change-salary form and validation | Change salary, see history | Planned |
+| 11 | **Insights dashboard** | KPI/table/chart rendering from fixtures, empty and error states | The HR manager's dashboard | Planned |
+| 12 | **Should-haves** | Outlier rules; CSV columns and filtering | Outliers view, CSV export | Backend done (API and export); UI planned |
+| 13 | **Ship** | Smoke test against the deployed URL | Dockerfile, deployment, performance notes, demo video, final README | Performance notes done; the rest planned |
 
 Milestones 2–7 (backend) and 8–11 (frontend) can overlap once the API contract for a slice is fixed by its request tests.
 
@@ -295,7 +311,7 @@ Milestones 2–7 (backend) and 8–11 (frontend) can overlap once the API contra
 
 ## 13. Deployment & CI
 
-- **CI (GitHub Actions, repo root):** backend tests + RuboCop + Brakeman; frontend lint + type-check + tests + build. Rails' generated workflow currently sits in `backend/.github/`, where GitHub ignores it, so it moves to the root in milestone 1.
+- **CI (GitHub Actions, `.github/workflows/ci.yml`):** backend tests (against a Postgres 17 service) + RuboCop + Brakeman on the Ruby in `backend/.ruby-version`; frontend lint + type-check + build on Node 22, with its tests joining in milestone 8. The workflow was replayed locally in `ruby:3.4.6`, `postgres:17` and `node:22` containers before being committed, which is also what proved `db/schema.rb` builds a working database from scratch.
 - **Deploy:** a multi-stage Dockerfile builds the React app, copies it into Rails' `public/`, and runs Rails with a catch-all route that serves the SPA shell for client-side routes. Target host is **Render** with managed Postgres; Fly.io or Railway are drop-in alternatives. We will confirm current free-tier limits before committing, since they change.
 - On first deploy: run migrations and `db:seed` once. Health check uses `/up`.
 - The README carries the live URL, the demo credentials for the synthetic dataset, and the demo video link.
@@ -307,8 +323,8 @@ The brief asks us to use AI on purpose, so the process is part of the deliverabl
 - **Division of labour:** the human owns *what* and *why*: requirements, scope cuts, the test cases that define behaviour, and review. AI accelerates *how*: drafting implementations, boilerplate, and alternatives.
 - **Tests drive the AI.** The failing test is the prompt's specification. AI writes code to make it pass, and we read and understand every diff before committing.
 - **Verification is never delegated:** tests, linters and CI decide whether code is right. AI output that does not pass is fixed or discarded, not argued with.
-- **Already AI-assisted in this repo:** the scaffold, and diagnosing a real incompatibility (`json` 3.x vs. ActiveSupport 8.0) that broke JSON rendering, fixed by pinning `json < 3`.
-- **Artifacts (to be written as we go, not reconstructed at the end):** significant prompts and the decisions they led to go in `docs/ai-usage.md`; measurements go in `docs/performance.md`.
+- **What that looked like in practice.** The tests caught the AI's own mistakes repeatedly, which is the point of the method: a `json` 3.x incompatibility that broke request parsing (found by the first test that POSTed JSON), a missing `csv` gem on Ruby 3.4, test data that built a record without persisting its currency, and my own arithmetic error in a comment about outlier fences (the test data forced the correct numbers). A Brakeman "SQL injection" warning on a whitelisted table name was resolved by restructuring the code with Arel rather than by suppressing it. Each is recorded in the commit that fixed it.
+- **Artifacts (written as we go, not reconstructed at the end):** the history of red and green commits is the primary record; measurements are in [performance.md](performance.md); significant prompts and the decisions they led to go in `docs/ai-usage.md` (still to be written).
 
 ## 15. Risks & open questions
 
@@ -327,3 +343,20 @@ component library (**MUI**), hosting (**Render**), CSV import deferred (**yes**)
 A milestone is done when: its tests were written first and pass; the whole suite and CI are green; new
 behaviour is covered at the right layer; RuboCop/Brakeman/lint are clean; docs affected by the change are
 updated; and the work is committed with a message that says *why*.
+
+## 17. What changed from the plan while building
+
+The plan was a starting point. These are the places where the build taught us something, with the reason.
+
+| Change | Why |
+|---|---|
+| Rails **8.1** and Ruby **3.4.6**, not Rails 8.0 / Ruby 3.2 | Brakeman flagged Rails 8.0 support ending 2026-11-07 and Ruby 3.2 as end of life. Cheaper to move before there was any code. |
+| `json` gem pinned **below 3** | json 3.x breaks Rails 8.1 (parsing a JSON request body raises and returns 400). The first attempt to drop the pin was wrong: it tested rendering, not parsing. The first test that POSTed JSON caught it. |
+| `csv` gem added | `csv` stopped being a default gem in Ruby 3.4. |
+| `PATCH /api/employees/:id` **rejects** salary, currency and employee number (422 `read_only_field`) | The plan said they would be ignored. For money data that is dangerous: a client would believe the salary changed. Salary changes go through their own endpoint so they leave a history. |
+| CSV export is `GET /api/employees/export`, not `/api/employees.csv` | API-only Rails has no `respond_to`; a separate endpoint is simpler and just as clear. |
+| A salary change can carry a **new currency** (previous and new amount and currency are both stored) | An employee who transfers countries changes currency and amount together; storing only an amount would misdescribe that. |
+| Seed data includes **salary history** | Otherwise the history view is empty in the demo. |
+| **No extra database indexes** (no `pg_trgm`, no index on `status`) | Measured: the slowest query is about 15 ms on 10,000 rows. See [performance.md](performance.md). |
+| Benchmark is a plain **HTTP client**, not a `rails runner` script | An in-process version broke Rails' execution context, and real HTTP is the more honest measurement. |
+| Tests live under `test/queries`, `test/services`, `test/support` | Mirrors the new `app/queries` and `app/services` directories. |
