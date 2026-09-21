@@ -16,6 +16,8 @@ class Api::InsightsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
     get api_insights_top_earners_url
     assert_response :unauthorized
+    get api_insights_outliers_url
+    assert_response :unauthorized
   end
 
   test "overview returns the headline numbers, with money as strings" do
@@ -99,6 +101,35 @@ class Api::InsightsControllerTest < ActionDispatch::IntegrationTest
     get api_insights_top_earners_url(direction: "asc", limit: 1)
 
     assert_equal [ "Lowest" ], body["data"].map { |employee| employee["first_name"] }
+  end
+
+  test "outliers lists people paid far outside their peers, with the peer range" do
+    sign_in
+    engineer = create(:job_title, name: "Engineer")
+    (100_000..109_000).step(1_000) { |amount| paid(amount, job_title: engineer) }
+    paid(140_000, first_name: "Outlier", job_title: engineer)
+
+    get api_insights_outliers_url
+
+    assert_response :success
+    assert_equal 1, body["data"].size
+    entry = body["data"].first
+    assert_equal "Outlier", entry.dig("employee", "first_name")
+    assert_equal "above", entry["direction"]
+    assert_equal "105000.0", entry["peer_median"]
+    assert_equal({ "lower" => "95000.0", "upper" => "115000.0" }, entry["fences"])
+    assert_equal 11, entry["peer_count"]
+  end
+
+  test "outliers honours the limit" do
+    sign_in
+    engineer = create(:job_title, name: "Engineer")
+    (100_000..109_000).step(1_000) { |amount| paid(amount, job_title: engineer) }
+    [ 200_000, 190_000 ].each { |amount| paid(amount, job_title: engineer) }
+
+    get api_insights_outliers_url(limit: 1)
+
+    assert_equal 1, body["data"].size
   end
 
   test "top_earners rejects an unknown direction with a 400" do
