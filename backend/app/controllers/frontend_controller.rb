@@ -4,8 +4,7 @@ class FrontendController < ApplicationController
   allow_unauthenticated_access
 
   def index
-    # The setting is read once, when a server starts, so fall back for one that started before it existed.
-    index = Rails.configuration.x.frontend_index || Rails.public_path.join("index.html")
+    index = frontend_index
 
     if File.exist?(index)
       send_file index, type: "text/html", disposition: "inline"
@@ -18,5 +17,15 @@ class FrontendController < ApplicationController
                     "Deploying? Run `npm run build` in frontend/ and copy dist/ into backend/public/ (the Dockerfile does this).",
              status: :not_found
     end
+  end
+
+  private
+
+  # Configuration is read once, when a server starts, so a server started before this setting existed has no value for
+  # it. Reading an undefined `config.x` value does not return nil but an empty ActiveSupport::OrderedOptions, which is
+  # truthy and answers any method with nil, so only a real path is accepted and anything else falls back to the default.
+  def frontend_index
+    configured = Rails.configuration.x.frontend_index
+    configured.is_a?(Pathname) || configured.is_a?(String) ? configured : Rails.public_path.join("index.html")
   end
 end
