@@ -164,15 +164,26 @@ class Api::EmployeesControllerTest < ActionDispatch::IntegrationTest
     assert_predicate employee, :inactive?
   end
 
-  test "update cannot change the salary or the employee number" do
-    employee = create(:employee, salary_amount: 90_000, employee_number: "E00001")
+  test "update refuses to change the salary or the employee number, and saves nothing" do
+    employee = create(:employee, first_name: "Original", salary_amount: 90_000, employee_number: "E00001")
 
-    patch api_employee_url(employee), params: { employee: { salary_amount: 1, employee_number: "HACKED" } }, as: :json
+    patch api_employee_url(employee),
+          params: { employee: { first_name: "Changed", salary_amount: 1, employee_number: "HACKED" } }, as: :json
 
-    assert_response :success
+    assert_response :unprocessable_entity
+    assert_equal "read_only_field", error["code"]
+    assert_equal %w[employee_number salary_amount], error["details"].keys.sort
     employee.reload
+    assert_equal "Original", employee.first_name
     assert_equal 90_000, employee.salary_amount
     assert_equal "E00001", employee.employee_number
+  end
+
+  test "update refuses the currency too, since it would silently reprice the salary" do
+    patch api_employee_url(create(:employee)), params: { employee: { currency_code: "EUR" } }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_equal [ "currency_code" ], error["details"].keys
   end
 
   test "update returns 422 for invalid data" do
