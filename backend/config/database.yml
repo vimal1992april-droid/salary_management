@@ -79,20 +79,6 @@ test:
 # for a full overview on how database connection configuration can be specified.
 #
 production:
-  primary: &primary_production
-    <<: *default
-    database: salary_management_api_production
-    username: salary_management
-    password: <%= ENV["BACKEND_DATABASE_PASSWORD"] %>
-  cache:
-    <<: *primary_production
-    database: salary_management_api_production_cache
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *primary_production
-    database: salary_management_api_production_queue
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *primary_production
-    database: salary_management_api_production_cable
-    migrations_paths: db/cable_migrate
+  <<: *default
+  # One database for everything. Hosts such as Render provide its address as DATABASE_URL.
+  url: <%= ENV["DATABASE_URL"] %>

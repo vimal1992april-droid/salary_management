@@ -40,7 +40,7 @@ module Authentication
         value: session.id,
         httponly: true,
         same_site: :lax,
-        secure: Rails.env.production?,
+        secure: Rails.configuration.force_ssl,
         expires: Session::EXPIRES_AFTER.from_now
       }
     end

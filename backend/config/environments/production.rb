@@ -22,10 +22,12 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
+  # TLS is terminated by the host's proxy. FORCE_SSL=false lets the same image run over plain HTTP, for a local check.
+  config.force_ssl = ENV.fetch("FORCE_SSL", "true") == "true"
+  config.assume_ssl = config.force_ssl
+  config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -44,11 +46,11 @@ Rails.application.configure do
   config.active_support.report_deprecations = false
 
   # Replace the default in-process memory cache store with a durable alternative.
-  config.cache_store = :solid_cache_store
+  # Holds only the login rate limiter's counters. In memory is enough for a single Puma process; use a shared
+  # store (Redis, Solid Cache) before running more than one.
+  config.cache_store = :memory_store, { size: 16.megabytes }
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
 
   # Ignore bad email addresses and do not raise email delivery errors.
   # Set this to true and configure the email server for immediate delivery to raise delivery errors.
