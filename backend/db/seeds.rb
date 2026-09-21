@@ -7,7 +7,8 @@
 # Safe to run more than once: existing rows are updated or skipped, never duplicated.
 count = Integer(ENV.fetch("SEED_EMPLOYEES", Seeding::Runner::DEFAULT_EMPLOYEES))
 result = Seeding::Runner.call(employees: count)
-puts "Seeded #{result.employees_created} new employees (#{result.employees_total} in total)."
+puts "Seeded #{result.employees_created} new employees (#{result.employees_total} in total) " \
+     "and #{result.salary_changes_created} salary changes."
 
 # Local development gets a known demo login; anywhere else the credentials must be supplied.
 hr_email = ENV["HR_EMAIL"].presence || ("hr@acme.example" if Rails.env.development?)

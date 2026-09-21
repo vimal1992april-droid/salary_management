@@ -40,6 +40,7 @@ class Seeding::RunnerTest < ActiveSupport::TestCase
   test "is deterministic: the same seed produces identical data" do
     Seeding::Runner.call(employees: 80, seed: 7)
     first_run = snapshot
+    SalaryChange.delete_all # history references employees
     Employee.delete_all
 
     Seeding::Runner.call(employees: 80, seed: 7)
@@ -50,6 +51,7 @@ class Seeding::RunnerTest < ActiveSupport::TestCase
   test "a different seed produces different data" do
     Seeding::Runner.call(employees: 80, seed: 7)
     first_run = snapshot
+    SalaryChange.delete_all # history references employees
     Employee.delete_all
 
     Seeding::Runner.call(employees: 80, seed: 8)
