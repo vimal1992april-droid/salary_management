@@ -10,7 +10,7 @@ Rails.application.routes.draw do
     root "dashboard#show"
     get "login", to: "sessions#new"
     post "login", to: "sessions#create"
-    delete "logout", to: "sessions#destroy"
+    post "logout", to: "sessions#destroy"
 
     # A read-only look at every table. The table name in the URL is only ever compared with a fixed list.
     get "tables", to: "tables#index", as: :tables
