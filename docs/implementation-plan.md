@@ -4,10 +4,10 @@ How we will build the salary management software: the decisions, the design, and
 **order of work**, which is test-first. Read [requirements.md](requirements.md) first for the *what* and *why*.
 This document is the *how*.
 
-> Status: **the backend is built** (milestones 2 to 7 and the backend half of 12, see the table in §11);
-> the frontend and deployment are next. Where the build taught us something that changed the plan, the section
-> is updated and the change is listed in §17. The decisions in §2 were made on purpose and can be challenged;
-> the reasoning is next to each one.
+> Status: **everything in the plan is built** (see the table in §11): the backend, the frontend, the Docker image and
+> the browser tests. What remains is for the owner to do: deploy the image to a host and record the demo video.
+> Where the build taught us something that changed the plan, the section is updated and the change is listed in
+> §17. The decisions in §2 were made on purpose and can be challenged; the reasoning is next to each one.
 
 ---
 
@@ -29,8 +29,8 @@ demo, tests and performance checks all see the same data.
 | D4 | **Cookie session auth**, single HR role | JWT in localStorage; full RBAC | httpOnly cookies are not readable by JS (safer for salary data). One persona means one role. |
 | D5 | **Minitest + FactoryBot** on the backend | RSpec | Minitest is the Rails default and already scaffolded, with fewer moving parts and a faster boot. FactoryBot keeps test data readable. |
 | D6 | **Vitest + React Testing Library + MSW** on the frontend | Jest; Cypress-only | Vitest shares Vite's config and is fast. RTL tests behaviour, not implementation. MSW fakes the API at the network boundary. |
-| D7 | **MUI + MUI X DataGrid (community)** as the component library | Mantine, Ant Design | Mature, accessible, and DataGrid gives server-side pagination, sorting and filtering out of the box, which is central to a 10k-row directory. |
-| D8 | **TanStack Query + React Router + React Hook Form + Zod**; Recharts for charts | Redux; custom fetch hooks | Server state is the hard part of this UI, and TanStack Query solves caching, loading and error states. Recharts is enough for bar charts and histograms. |
+| D7 | **MUI** as the component library, with its plain `Table` and `TablePagination` (the plan first said DataGrid, see §17) | Mantine, Ant Design, MUI X DataGrid | Mature and accessible. Sorting, filtering and paging all happen on the server, so a grid's features would go unused. |
+| D8 | **TanStack Query + React Router**; Recharts for charts; small pure functions for form rules (the plan first said React Hook Form + Zod, see §17) | Redux; custom fetch hooks | Server state is the hard part of this UI, and TanStack Query solves caching, loading and error states. Recharts is enough for a histogram. |
 | D9 | **Salary stored as `decimal(14,2)` + ISO currency code**, converted to USD via a static `currencies.rate_to_usd` | Floats; cents integers; live FX API | Decimals avoid float error. Static dated rates keep every statistic deterministic and testable. |
 | D10 | **Query objects and service objects** for logic; thin controllers | Fat models; `ActiveRecord` calls in controllers | Search, statistics and salary changes have real rules. Isolating them gives fast, focused unit tests. |
 | D11 | **Portable multi-stage Dockerfile** for deployment | Platform-native buildpacks | Builds React, then runs Rails. Works on Render, Fly.io or Railway, so we are not locked in. |
@@ -192,14 +192,18 @@ backend/test/          # mirrors app/: models, queries, services, controllers (r
 
 ```
 frontend/src/
-  api/          # typed fetch client + one module per resource (employees, insights, session)
-  features/     # employees/ (list, form, detail, history), insights/ (dashboard), auth/
-  components/   # shared: layout, page header, error/empty/loading states, money formatter
-  routes.tsx    # /login, /employees, /employees/:id, /insights
-  test/         # MSW handlers, render helpers
+  api/          # typed fetch client (ApiError, JSON bodies, 204s), query-string builder, one module per resource
+  auth/         # session hooks, AuthGate, LoginPage
+  components/   # AppLayout and small shared pieces
+  features/     # employees/ (directory, detail, forms, salary history, status), insights/ (dashboard sections)
+  lib/          # format.ts (money, dates, percentages), amount.ts, date.ts
+  test/         # MSW server, fixtures (checked against the real API), helpers
+  App.tsx       # routes: /login, /employees, /employees/new, /employees/:id, /employees/:id/edit, /insights
 ```
 
-- **Screens:** Login · Employees (DataGrid with server-side filters) · Employee detail (profile, salary history, "change salary") · Insights (KPI cards, grouped stats table, distribution chart, top/bottom earners).
+- **Screens:** Login · Employees (a table with server-side search, filters, sorting and paging, CSV export) · Employee page (profile, salary history, change salary, edit, deactivate) · Add and edit employee · Insights (KPI cards, pay by group, distribution chart, highest and lowest paid, outliers).
+- **Forms:** each form's rules and request bodies are pure functions (`employeeForm.ts`, `salaryChangeForm.ts`) tested on their own. They check before sending, show the server's per-field messages beside the fields, and clear a field's message as soon as it is edited.
+- **Code splitting:** the Insights page (and with it the chart library, a further 357 kB chunk) is only downloaded when it is opened.
 - **State:** server state in TanStack Query; filters live in the **URL query string**, so views are shareable and survive refresh.
 - **Money:** one formatter renders local amounts (`Intl.NumberFormat` with the currency code) and USD-converted ones, so formats never drift.
 - Every data view has explicit **loading, empty and error** states, and each is tested.
@@ -240,7 +244,7 @@ Rules: no production code without a failing test that demands it; one behaviour 
 | **Request tests** | Auth required (401), response shape, status codes, validation errors (422), and **query-count assertions** to catch N+1 | Exercise routing, params and JSON together. |
 | **Seed tests** | Requested count produced, deterministic (same seed → same data), idempotent, all rows valid | Use a small count so they stay fast. |
 | **Frontend components / hooks** | Loading, empty, error and success states; filter changes update the request and the URL; form validation; money formatting | RTL + MSW, asserting what the user sees. |
-| **One E2E smoke** *(if time allows)* | Log in → find employee → change salary → see it in history | Playwright, a single critical path. |
+| **One E2E test** | Sign in → find someone → add an employee → change their salary → read the insights → sign out | Playwright in Chromium against the production image (see [e2e/README.md](../e2e/README.md)); about 9 s. |
 
 ### 9.3 Conventions that keep tests fast, deterministic and readable
 
@@ -248,7 +252,7 @@ Rules: no production code without a failing test that demands it; one behaviour 
 - **Small explicit datasets.** A test creates only the rows it needs, so the expected value is obvious from reading it.
 - **Names are sentences:** `test "filters by country and status together"`; the failure message says what broke.
 - **One reason to fail** per test; Arrange–Act–Assert layout.
-- **Targets:** backend suite under ~30 s, frontend under ~15 s. If a test is slow, fix the test. Today the backend suite is 249 tests and runs in about 5 s (13 s in a fresh container).
+- **Targets:** backend suite under ~30 s, frontend under ~15 s. If a test is slow, fix the test. Today the backend suite is 264 tests and runs in about 5 s (27 s in a fresh container). The frontend suite is 155 tests and takes about 20 s (29 s in a container), **over the 15 s target**: MUI renders slowly in jsdom, and the create-employee tests fill fields with paste rather than typing each character to keep them fast.
 - **Coverage** is reported (SimpleCov, Vitest coverage) as a signal, not a goal. We check that core logic branches are covered, not a percentage.
 - **CI is the gate:** tests, RuboCop, Brakeman, ESLint/oxlint, type-check and build all run on every push.
 
@@ -283,25 +287,26 @@ Commit messages use Conventional Commits (`docs:`, `test:`, `feat:`, `refactor:`
 | # | Milestone | Tests come first for… | Outcome | Status |
 |---|---|---|---|---|
 | 0 | **Docs** | n/a | Requirements, this plan, README | Done |
-| 1 | **Tooling & CI** | A trivial passing test on each side proves the harness | FactoryBot, SimpleCov, RuboCop, Brakeman; Vitest + RTL + MSW; CI at repo root | Backend and CI done; frontend test tooling comes with milestone 8 |
+| 1 | **Tooling & CI** | A trivial passing test on each side proves the harness | FactoryBot, SimpleCov, RuboCop, Brakeman; Vitest + RTL + MSW; CI at repo root | Done |
 | 2 | **Reference data & Employee model** | Model validations, associations, money rules | Migrations and models for countries, currencies, departments, job titles, employees | Done |
 | 3 | **Seed script** | Count, determinism, idempotency, validity | 10,000 realistic employees in seconds | Done, including salary history |
 | 4 | **Authentication** | Login/logout, 401 on protected routes, rate limiting | HR user can sign in; API is protected | Done |
 | 5 | **Employees API** | `Employees::Search` (§9.4), CRUD request tests, 422 errors | Directory, create, edit, deactivate | Done |
 | 6 | **Salary changes** | `ChangeSalary` transaction, history order, invalid input | Salary edits with an append-only history | Done |
 | 7 | **Insights API** | Each statistic against hand-computed data; active-only; USD conversion | Overview, stats by group, distribution, top/bottom earners | Done |
-| 8 | **Frontend shell** | Auth gate, routing, API client error handling | Login, layout, typed client | Next |
-| 9 | **Employees UI** | Table states, filter → URL → request, form validation | Directory, create/edit, detail | Planned |
-| 10 | **Salary UI** | History rendering, change-salary form and validation | Change salary, see history | Planned |
-| 11 | **Insights dashboard** | KPI/table/chart rendering from fixtures, empty and error states | The HR manager's dashboard | Planned |
-| 12 | **Should-haves** | Outlier rules; CSV columns and filtering | Outliers view, CSV export | Backend done (API and export); UI planned |
-| 13 | **Ship** | Smoke test against the deployed URL | Dockerfile, deployment, performance notes, demo video, final README | Performance notes done; the rest planned |
+| 8 | **Frontend shell** | Auth gate, routing, API client error handling | Login, layout, typed client | Done |
+| 9 | **Employees UI** | Table states, filter → URL → request, form validation | Directory, create/edit, detail, deactivate | Done |
+| 10 | **Salary UI** | History rendering, change-salary form and validation | Change salary, see history | Done |
+| 11 | **Insights dashboard** | KPI/table/chart rendering from fixtures, empty and error states | The HR manager's dashboard, including outliers | Done |
+| 12 | **Should-haves** | Outlier rules; CSV columns and filtering | Outliers view, CSV export | Done (API, export link and dashboard section) |
+| 13 | **Ship** | Smoke test against the running image | Dockerfile, Render blueprint, performance notes, browser test, final README | Done, except deploying to a real host and the demo video, which need the owner's account and screen |
 
-Milestones 2–7 (backend) and 8–11 (frontend) can overlap once the API contract for a slice is fixed by its request tests.
+Milestones 2–7 (backend) and 8–11 (frontend) could overlap once the API contract for a slice was fixed by its request tests; in practice the backend was finished first, and the frontend's fixtures were then checked against the real API's responses.
 
 ## 12. Security & privacy
 
-- Passwords hashed with `has_secure_password` (bcrypt); session in a signed, `httpOnly`, `SameSite=Lax`, `Secure` (production) cookie.
+- Passwords hashed with `has_secure_password` (bcrypt); session in a signed, `httpOnly`, `SameSite=Lax` cookie that is `Secure` whenever TLS is enforced (`FORCE_SSL`, on by default in production). The session lives in the database, so logging out or expiry (14 days) invalidates a copied cookie.
+- CSV export neutralises spreadsheet formulas in names and emails (a value starting with `=`, `+`, `-`, `@`, tab or CR is prefixed with an apostrophe).
 - Login is **rate limited**; failures return the same message whether the email or password was wrong.
 - CSRF: `SameSite=Lax`, JSON-only requests, same origin. Revisit if the API is ever served cross-origin.
 - Strong parameters everywhere; ActiveRecord parameterised queries only (Brakeman runs in CI).
@@ -311,10 +316,10 @@ Milestones 2–7 (backend) and 8–11 (frontend) can overlap once the API contra
 
 ## 13. Deployment & CI
 
-- **CI (GitHub Actions, `.github/workflows/ci.yml`):** backend tests (against a Postgres 17 service) + RuboCop + Brakeman on the Ruby in `backend/.ruby-version`; frontend lint + type-check + build on Node 22, with its tests joining in milestone 8. The workflow was replayed locally in `ruby:3.4.6`, `postgres:17` and `node:22` containers before being committed, which is also what proved `db/schema.rb` builds a working database from scratch.
-- **Deploy:** a multi-stage Dockerfile builds the React app, copies it into Rails' `public/`, and runs Rails with a catch-all route that serves the SPA shell for client-side routes. Target host is **Render** with managed Postgres; Fly.io or Railway are drop-in alternatives. We will confirm current free-tier limits before committing, since they change.
-- On first deploy: run migrations and `db:seed` once. Health check uses `/up`.
-- The README carries the live URL, the demo credentials for the synthetic dataset, and the demo video link.
+- **CI (GitHub Actions, `.github/workflows/ci.yml`):** backend tests (against a Postgres 17 service) + RuboCop + Brakeman on the Ruby in `backend/.ruby-version`; frontend lint + tests + type-check and build on Node 22. The jobs were replayed in `ruby:3.4.6`, `postgres:17` and `node:22` containers, which is also what proved `db/schema.rb` builds a working database from scratch. They have not yet run on GitHub itself. The browser tests are not part of CI (they need the image built and a database); they are run by hand, see [e2e/README.md](../e2e/README.md).
+- **Deploy:** one multi-stage Dockerfile builds the React app, installs the gems, and produces a slim non-root runtime with the build in Rails' `public/`. `FrontendController` serves the app shell for every client-side route (and for nothing under `/api`, the health checks, or anything that looks like a file). `bin/start-production` migrates, seeds an empty database, sets the HR login and starts Puma. Target host is **Render** with managed Postgres (`render.yaml`); Fly.io or Railway work the same way. Details, environment variables and what was verified are in [deployment.md](deployment.md).
+- **Production configuration** was simplified for a single database: the Rails 8 defaults (Solid Cache, Queue and Cable, each with its own database) are removed, as this app has no background jobs or websockets; the cache holds only the login rate limiter, in memory, which is right for one Puma process.
+- The README carries the live URL, the demo credentials and the demo video link, once the owner has them.
 
 ## 14. How AI is used
 
@@ -324,7 +329,8 @@ The brief asks us to use AI on purpose, so the process is part of the deliverabl
 - **Tests drive the AI.** The failing test is the prompt's specification. AI writes code to make it pass, and we read and understand every diff before committing.
 - **Verification is never delegated:** tests, linters and CI decide whether code is right. AI output that does not pass is fixed or discarded, not argued with.
 - **What that looked like in practice.** The tests caught the AI's own mistakes repeatedly, which is the point of the method: a `json` 3.x incompatibility that broke request parsing (found by the first test that POSTed JSON), a missing `csv` gem on Ruby 3.4, test data that built a record without persisting its currency, and my own arithmetic error in a comment about outlier fences (the test data forced the correct numbers). A Brakeman "SQL injection" warning on a whitelisted table name was resolved by restructuring the code with Arel rather than by suppressing it. Each is recorded in the commit that fixed it.
-- **Artifacts (written as we go, not reconstructed at the end):** the history of red and green commits is the primary record; measurements are in [performance.md](performance.md); significant prompts and the decisions they led to go in `docs/ai-usage.md` (still to be written).
+- **Later mistakes caught the same way:** the frontend's hand-written fixtures could have drifted from the real API, so they were compared with its live responses (all 17 request shapes match); a Docker build failed on an unset `BUNDLE_PATH`; running the production image found the app shell cached for a year and pages returning 404 to clients that send only `Accept: */*`; and a real browser found validation messages that stayed under fields already corrected. Each was reproduced by a failing test before it was fixed.
+- **Artifacts (written as we go, not reconstructed at the end):** the history of red and green commits is the primary record; measurements are in [performance.md](performance.md); how AI was used, and what it got wrong, is in [ai-usage.md](ai-usage.md).
 
 ## 15. Risks & open questions
 
@@ -360,3 +366,11 @@ The plan was a starting point. These are the places where the build taught us so
 | **No extra database indexes** (no `pg_trgm`, no index on `status`) | Measured: the slowest query is about 15 ms on 10,000 rows. See [performance.md](performance.md). |
 | Benchmark is a plain **HTTP client**, not a `rails runner` script | An in-process version broke Rails' execution context, and real HTTP is the more honest measurement. |
 | Tests live under `test/queries`, `test/services`, `test/support` | Mirrors the new `app/queries` and `app/services` directories. |
+| The directory uses MUI's `Table` and `TablePagination`, not the **DataGrid** | Sorting, filtering and paging are all server-side, so the grid's features would go unused; it would add a lot to the bundle; and it is awkward to test without a real browser. |
+| Forms use **small pure functions** for their rules, not React Hook Form and Zod | There are two forms, and their rules (required fields, amounts, dates, the server's 422 messages) are simple. Plain functions are tested on their own and add no dependencies. |
+| The Insights page is **lazy-loaded** with its chart as a separate chunk | The chart library is 357 kB and only one page uses it. |
+| Production drops **Solid Cache, Queue and Cable** and uses one database and an in-memory cache | The Rails 8 defaults want four databases; this app has one, no background jobs and no websockets. |
+| `FORCE_SSL` controls TLS enforcement, and the session cookie is `Secure` whenever it is on | Lets the same image be tried over plain HTTP locally while staying strict by default; the old rule keyed the cookie to the environment name. |
+| Every client route is answered by `FrontendController`; the static file server no longer serves `/` | Found by running the image: the static server answered `/` with a one-year cache header, so a browser would keep an old shell after a deploy; and the catch-all route wrongly depended on the `Accept` header. |
+| A **Playwright browser test** against the production image | It found a bug the jsdom tests could not (validation messages that stayed after being fixed). Not in CI, because it needs the image built and a database; run by hand. |
+| The frontend suite takes about 20 s, over the 15 s target | MUI renders slowly in jsdom. Fields are filled by paste in the long form tests, and the timeout is 15 s per test for slower CI machines. |
