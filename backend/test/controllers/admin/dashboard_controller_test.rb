@@ -9,7 +9,7 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
     paid(100_000)
     paid(200_000)
     create(:employee, status: "inactive")
-    create(:salary_change)
+    create(:salary_change, employee: create(:employee, status: "inactive")) # inactive, so the pay figures stay those of the two above
 
     get admin_root_url
 

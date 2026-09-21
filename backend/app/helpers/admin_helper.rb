@@ -28,6 +28,11 @@ module AdminHelper
     admin_table_path(table.name, request.query_parameters.merge(changes).compact)
   end
 
+  # A whole-number USD figure with thousands separators, or a dash where there is nothing to average.
+  def usd_figure(amount)
+    amount.nil? ? "\u2014" : number_with_precision(amount, precision: 0, delimiter: ",")
+  end
+
   def row_count(total)
     "#{number_with_delimiter(total)} #{'row'.pluralize(total)}"
   end

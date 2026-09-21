@@ -1,5 +1,7 @@
 module Admin
   class DashboardController < BaseController
-    def show; end
+    def show
+      @metrics = Admin::Metrics.call
+    end
   end
 end
