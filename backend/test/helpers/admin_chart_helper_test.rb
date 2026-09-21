@@ -86,6 +86,23 @@ class AdminChartHelperTest < ActionView::TestCase
     assert_operator chart.css("text.label").size, :<, 24
   end
 
+  test "a column chart thins out labels that are wider than the space between columns" do
+    rows = Array.new(10) { |index| { label: "#{100 + index}k–#{144 + index}k", value: index + 1 } }
+
+    chart = dom(column_chart(rows, title: "Salary bands"))
+
+    labels = chart.css("text.label")
+    assert_equal 10, chart.css("rect.column").size
+    assert_operator labels.size, :<, 10
+    assert_operator labels.size, :>=, 3
+  end
+
+  test "short labels are all shown when there is room" do
+    rows = Array.new(10) { |index| { label: "Y#{index}", value: index + 1 } }
+
+    assert_equal 10, dom(column_chart(rows, title: "Years")).css("text.label").size
+  end
+
   # --- donut ------------------------------------------------------------------------------------------------------
 
   test "a donut splits the ring in proportion and lists each share" do
