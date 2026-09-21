@@ -14,15 +14,9 @@ module Admin
     HIDDEN_COLUMNS = { "users" => %w[password_digest] }.freeze
     TIMESTAMPS = %w[created_at updated_at].freeze
     DIRECTIONS = %w[asc desc].freeze
-    DEFAULT_PER_PAGE = 25
-    MAX_PER_PAGE = 100
     MAX_ID_DIGITS = 18 # a bigint holds 19; anything longer cannot be an id
 
-    Result = Struct.new(:records, :page, :per_page, :total) do
-      def total_pages
-        [ (total.to_f / per_page).ceil, 1 ].max
-      end
-    end
+    Result = Pagination::Result
 
     def self.all
       MODELS.map { |name| new(name.constantize) }
@@ -94,8 +88,8 @@ module Admin
     def page(q: nil, sort: nil, direction: nil, page: nil, per_page: nil, filters: {})
       scope = filter(search(model.all, q), filters)
       total = scope.count
-      per_page = per_page_from(per_page)
-      page = page_from(page, total, per_page)
+      per_page = Pagination.per_page(per_page)
+      page = Pagination.page(page, total, per_page)
 
       records = sort_by(scope.select(*columns), sort, direction).limit(per_page).offset((page - 1) * per_page).to_a
       Result.new(records, page, per_page, total)
@@ -135,17 +129,6 @@ module Admin
 
       direction = DIRECTIONS.include?(direction.to_s) ? direction.to_s : "asc"
       scope.order(model.arel_table[sort.to_s].public_send(direction), key)
-    end
-
-    def per_page_from(value)
-      number = Integer(value.to_s, 10, exception: false)
-      number && number.positive? ? [ number, MAX_PER_PAGE ].min : DEFAULT_PER_PAGE
-    end
-
-    # Past the last page is the last page, and below the first is the first.
-    def page_from(value, total, per_page)
-      last = [ (total.to_f / per_page).ceil, 1 ].max
-      (Integer(value.to_s, 10, exception: false) || 1).clamp(1, last)
     end
   end
 end
