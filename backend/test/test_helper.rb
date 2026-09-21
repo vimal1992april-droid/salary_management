@@ -18,6 +18,17 @@ module ActiveSupport
     parallelize_teardown { |_worker| SimpleCov.result }
 
     include FactoryBot::Syntax::Methods
+
+    # Number of SQL statements run by the block, ignoring schema lookups and transaction control.
+    # Used to prove a page of results costs a constant number of queries (no N+1).
+    def count_queries(&block)
+      count = 0
+      counter = lambda do |*, payload|
+        count += 1 unless payload[:name] == "SCHEMA" || payload[:sql].match?(/\A\s*(BEGIN|COMMIT|SAVEPOINT|RELEASE)/i)
+      end
+      ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &block)
+      count
+    end
   end
 end
 
