@@ -3,6 +3,8 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
+  root "frontend#index"
+
   namespace :api do
     get "health", to: "health#show"
     get "lookups", to: "lookups#show"
@@ -21,4 +23,10 @@ Rails.application.routes.draw do
       resources :salary_changes, only: %i[index create]
     end
   end
+
+  # Every other page is a client-side route of the React app. Not /api, not health checks, and not anything
+  # that looks like a file (a missing asset should be a 404, not the app shell).
+  get "*path", to: "frontend#index", constraints: lambda { |request|
+    request.format.html? && !request.path.start_with?("/api", "/up", "/rails") && !request.path.match?(/\.\w+\z/)
+  }
 end

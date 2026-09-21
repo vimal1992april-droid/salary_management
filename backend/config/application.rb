@@ -29,6 +29,9 @@ module Backend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # The built React app that FrontendController serves (copied into public/ by the Docker build).
+    config.x.frontend_index = config.root.join("public", "index.html")
+
     # API-only apps drop the cookie middleware; the HR session lives in a signed, httpOnly cookie.
     config.middleware.use ActionDispatch::Cookies
   end

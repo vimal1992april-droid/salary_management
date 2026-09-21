@@ -22,6 +22,9 @@ Rails.application.configure do
   config.consider_all_requests_local = true
   config.cache_store = :memory_store
 
+  # A stand-in for the built React app, so the app shell can be tested without building the frontend.
+  config.x.frontend_index = Rails.root.join("test/fixtures/files/frontend_index.html")
+
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
