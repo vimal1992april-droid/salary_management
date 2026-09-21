@@ -16,6 +16,7 @@ Rails.application.routes.draw do
     end
 
     resource :session, only: %i[show create destroy]
+    get "employees/export", to: "employee_exports#show", as: :employee_export
     resources :employees, only: %i[index show create update] do
       resources :salary_changes, only: %i[index create]
     end

@@ -1,5 +1,7 @@
 module Api
   class EmployeesController < ApplicationController
+    include EmployeeSearchable
+
     CREATE_FIELDS = %i[
       employee_number first_name last_name email country_id department_id job_title_id
       hire_date salary_amount currency_code status
@@ -10,10 +12,6 @@ module Api
     READ_ONLY_ON_UPDATE = %w[employee_number salary_amount currency_code].freeze
 
     before_action :reject_read_only_fields, only: :update
-
-    rescue_from Employees::Search::InvalidParameter do |error|
-      render_error(:invalid_parameter, error.message, status: :bad_request)
-    end
 
     def index
       result = Employees::Search.call(**search_params)
@@ -45,11 +43,6 @@ module Api
 
     def find_employee
       Employee.includes(:country, :department, :job_title, :currency).find(params[:id])
-    end
-
-    def search_params
-      params.permit(:q, :country_id, :department_id, :job_title_id, :status, :sort, :direction, :page, :per_page)
-            .to_h.symbolize_keys
     end
 
     def reject_read_only_fields

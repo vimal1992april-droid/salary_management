@@ -4,6 +4,8 @@ module Employees
   #   result = Employees::Search.call(q: "asha", country_id: 3, sort: "salary", direction: "desc", page: 2)
   #   result.records      # the page, with everything the serializer needs preloaded
   #   result.total        # matches across all pages
+  #
+  # Pass `paginate: false` to get every match at once (used by the CSV export).
   class Search
     # Raised for parameters that name something that does not exist (a sort column, a status).
     InvalidParameter = Class.new(ArgumentError)
@@ -43,8 +45,9 @@ module Employees
     end
 
     def initialize(q: nil, country_id: nil, department_id: nil, job_title_id: nil, status: nil,
-                   sort: nil, direction: nil, page: nil, per_page: nil)
+                   sort: nil, direction: nil, page: nil, per_page: nil, paginate: true)
       @q = q
+      @paginate = paginate
       @filters = { country_id:, department_id:, job_title_id:, status: }.compact_blank
       @sort = validated(sort.presence || DEFAULT_SORT, SORTS.keys, "sort")
       @direction = validated(direction.presence || DEFAULT_DIRECTION, DIRECTIONS, "direction")
@@ -55,12 +58,11 @@ module Employees
 
     def call
       matches = matching(Employee.where(@filters))
-      records = sorted(matches)
-                  .preload(:country, :department, :job_title, :currency)
-                  .limit(@per_page)
-                  .offset((@page - 1) * @per_page)
+      total = matches.count
+      records = sorted(matches).preload(:country, :department, :job_title, :currency)
+      return Result.new(records, 1, [ total, 1 ].max, total) unless @paginate
 
-      Result.new(records, @page, @per_page, matches.count)
+      Result.new(records.limit(@per_page).offset((@page - 1) * @per_page), @page, @per_page, total)
     end
 
     private
