@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AuthGate from './auth/AuthGate'
 import LoginPage from './auth/LoginPage'
 import AppLayout from './components/AppLayout'
-import EmployeesPage from './pages/EmployeesPage'
+import EmployeesPage from './features/employees/EmployeesPage'
 import InsightsPage from './pages/InsightsPage'
 import NotFoundPage from './pages/NotFoundPage'
 

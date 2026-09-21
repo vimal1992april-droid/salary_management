@@ -1,11 +1,12 @@
 import { render } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import type { EmployeeList } from '../api/employees'
 import App from '../App'
 import { Providers } from '../providers'
 import { createQueryClient } from '../queryClient'
 import { lookups, pageOf } from './fixtures'
+import LocationSpy from './LocationSpy'
 import { server } from './server'
 
 export const hr = { id: 1, email: 'hr@acme.example' }
@@ -40,12 +41,6 @@ export function mockDirectory(respond: (params: URLSearchParams) => EmployeeList
     }),
   )
   return requests
-}
-
-/** Shows the router's current location, so tests can check the URL the app ended up at. */
-function LocationSpy() {
-  const location = useLocation()
-  return <output data-testid="location">{`${location.pathname}${location.search}`}</output>
 }
 
 /** Renders the whole app at `route`, with a query client that never retries so failures show up at once. */

@@ -74,7 +74,7 @@ describe('the employee directory', () => {
       expect(await screen.findByRole('link', { name: 'Asha Verma' })).toBeInTheDocument()
     })
 
-    it('says so when nothing matches, and offers to clear the filters', async () => {
+    it('says so when nothing matches, and the filter bar offers to clear the filters', async () => {
       const requests = mockDirectory(() => pageOf([]))
       const user = userEvent.setup()
 
@@ -260,7 +260,8 @@ describe('the employee directory', () => {
 
       renderApp('/employees?q=priya&country_id=2&status=all&sort=hire_date&direction=desc&page=3&per_page=50')
 
-      expect(await screen.findByLabelText('Country')).toHaveValue('2')
+      await screen.findByRole('option', { name: 'India' }) // a select can only show its value once its options exist
+      expect(screen.getByLabelText('Country')).toHaveValue('2')
       expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('priya')
       expect(screen.getByLabelText('Status')).toHaveValue('all')
       expect(Object.fromEntries(requests[0])).toEqual({

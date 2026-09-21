@@ -1,9 +1,12 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
-import { hr, renderApp, signedIn, signedOut } from './test/helpers'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { hr, mockDirectory, renderApp, signedIn, signedOut } from './test/helpers'
 import { server } from './test/server'
+
+// Several of these tests end up on the directory, which loads its data.
+beforeEach(() => mockDirectory())
 
 describe('access to the app', () => {
   it('sends a signed-out visitor to the sign-in page', async () => {
