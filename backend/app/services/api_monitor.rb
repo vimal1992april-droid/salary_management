@@ -2,6 +2,9 @@
 # Payloads can hold secrets and people's pay, so the rules for what is kept live in one place (Redactor), and the
 # whole thing can be switched off with API_MONITOR=false.
 module ApiMonitor
+  # Where the API's controllers leave the id of the signed-in user for the middleware, which runs outside them.
+  USER_ENV_KEY = "api_monitor.user_id".freeze
+
   module_function
 
   def settings

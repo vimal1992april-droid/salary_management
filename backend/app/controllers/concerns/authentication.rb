@@ -10,6 +10,7 @@ module Authentication
 
   included do
     before_action :require_authentication
+    after_action :note_user_for_api_monitor
   end
 
   class_methods do
@@ -22,6 +23,11 @@ module Authentication
 
   def require_authentication
     resume_session || render_error(:unauthenticated, "Please sign in to continue", status: :unauthorized)
+  end
+
+  # The API monitor's middleware runs outside the controllers, so the signed-in user is left in the request for it.
+  def note_user_for_api_monitor
+    request.env[ApiMonitor::USER_ENV_KEY] = Current.user&.id
   end
 
   def resume_session
