@@ -42,4 +42,16 @@ class UserTest < ActiveSupport::TestCase
     assert_nil User.authenticate_by(email: "hr@acme.example", password: "wrong-password")
     assert_nil User.authenticate_by(email: "nobody@acme.example", password: "correct-horse-battery")
   end
+
+  test "is not an admin unless made one" do
+    assert_not create(:user).admin?
+    assert create(:user, :admin).admin?
+  end
+
+  test "the admins scope lists only the admins" do
+    create(:user)
+    admin = create(:user, :admin)
+
+    assert_equal [ admin ], User.admins.to_a
+  end
 end
