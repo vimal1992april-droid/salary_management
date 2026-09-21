@@ -11,7 +11,8 @@ user), and is about 395 MB.
 
 1. Push this repository to GitHub.
 2. In Render: **New > Blueprint**, choose the repository. Render reads `render.yaml`.
-3. When asked, give it the two values marked `sync: false`: `HR_EMAIL` and `HR_PASSWORD` (the HR manager's login).
+3. When asked, give it the four values marked `sync: false`: `HR_EMAIL` and `HR_PASSWORD` (the HR manager's login) and
+   `ADMIN_EMAIL` and `ADMIN_PASSWORD` (the administrator's login for `/admin`).
 4. Deploy. The first start migrates the database and seeds the 10,000 demo employees (about 15 seconds); later
    starts find the data and do not seed again.
 5. Put the URL, and the login you chose, in the README.
@@ -30,6 +31,8 @@ port.
 | `DATABASE_URL` | yes | PostgreSQL connection string. |
 | `SECRET_KEY_BASE` | yes | Signs the session cookie. Generate with `openssl rand -hex 64`. Never committed. |
 | `HR_EMAIL`, `HR_PASSWORD` | yes for a login | Create (or reset) the HR manager's login on every start. Without them there is no way to sign in. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | yes for the admin panel | Create (or reset) the administrator's login on every start; it opens `/admin`, and the HR login does not. Without them the panel exists but nobody can sign in. |
+| `API_MONITOR` | no | `false` stops the API monitor recording calls (default on). It stores request and response payloads, which include names, emails and pay; see [admin.md](admin.md). |
 | `PORT` | no | Port Puma listens on (default 3000). |
 | `FORCE_SSL` | no | Default `true`: the app assumes TLS is terminated by the host's proxy and marks the session cookie `Secure`. Set `false` only to try the image over plain HTTP. |
 | `RAILS_MAX_THREADS` | no | Puma threads (default 3). |
@@ -54,8 +57,11 @@ a real browser (see [e2e/README.md](../e2e/README.md)):
   `/assets/` are cached for a year, and a missing asset or an unknown API path is a plain 404 rather than the app;
 - the API works from the same origin: login sets an `httpOnly`, `SameSite=Lax` cookie (also `Secure` with TLS on),
   the API refuses requests without a session, and insights, outliers and the CSV export return the seeded data;
-- two bugs were found this way and fixed (a page returning 404 to clients that send only `Accept: */*`, and the app
-  shell being cached for a year by the static file server).
+- the administrator's panel, in the same browser run: signing in (and being refused with the HR login), the dashboard,
+  the data pages, the API monitor and one call's payload with its password filtered, and signing out;
+- four bugs were found this way and fixed (a page returning 404 to clients that send only `Accept: */*`, the app
+  shell being cached for a year by the static file server, `bin/start-production` having gained Windows line endings
+  so the container exited at once, and the admin's Sign out button doing nothing in a real browser).
 
 **Not verified:** an actual deploy to Render (or any host), because that needs an account; the `render.yaml` blueprint
 has therefore not been run. The image and start command are the same ones exercised locally, so the likely surprises
