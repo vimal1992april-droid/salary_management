@@ -118,6 +118,14 @@ class Employees::SearchTest < ActiveSupport::TestCase
     assert_equal [ older, newer ], search(sort: "hire_date", direction: "asc").records.to_a
   end
 
+  test "sorts by employee number" do
+    later = create(:employee, employee_number: "EMP-0002")
+    earlier = create(:employee, employee_number: "EMP-0001")
+
+    assert_equal [ earlier, later ], search(sort: "employee_number", direction: "asc").records.to_a
+    assert_equal [ later, earlier ], search(sort: "employee_number", direction: "desc").records.to_a
+  end
+
   test "sorts by country, department and job title name" do
     a, b = create(:employee), create(:employee)
     a.country.update!(name: "Zambia")
