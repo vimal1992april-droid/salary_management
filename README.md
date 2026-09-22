@@ -170,7 +170,20 @@ docker run -p 8080:3000 --network sm-net \
 ```
 
 It migrates and seeds on first start, then serves the HR app at http://localhost:8080 and the admin panel at
-http://localhost:8080/admin (sign in with the emails and passwords passed above; see [Signing in](#signing-in)).
+http://localhost:8080/admin. **Sign in with the emails and passwords you passed in the `docker run` command above** —
+with the example values shown there, that's:
+
+| | HR manager | Administrator |
+|---|---|---|
+| URL | http://localhost:8080 | http://localhost:8080/admin |
+| Email | `hr@example.com` | `admin@example.com` |
+| Password | `choose-one` | `choose-another` |
+
+These are **not** the same as the local-development demo logins in [Signing in](#signing-in) (`hr@acme.example` /
+`admin@acme.example`) — those only exist when `bin/rails db:seed` runs with no `HR_EMAIL`/`ADMIN_EMAIL` set. In
+Docker, a login exists only if its two variables were passed to `docker run`, and it is always whatever values you
+passed, not a fixed demo one. *Invalid email or password* on http://localhost:8080/admin almost always means the
+demo credentials were tried instead of the ones actually passed to this container.
 
 ## Running the tests
 
