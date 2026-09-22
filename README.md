@@ -188,12 +188,32 @@ demo credentials were tried instead of the ones actually passed to this containe
 ## Running the tests
 
 ```bash
-cd backend  && bin/rails test && bin/rubocop && bin/brakeman     # 487 tests in about 7 s
-cd frontend && npm test && npm run lint && npm run build         # 155 tests in about 20 s
+cd backend  && bin/rails test && bin/rubocop && bin/brakeman     # 528 tests in about 8 s
+cd frontend && npm test && npm run lint && npm run build         # 156 tests in about 20 s
 ```
 
 The browser tests (two tests, the HR manager's critical path and the administrator's panel, run against the production image) are described in
 [e2e/README.md](e2e/README.md). To time every endpoint against a running server: `ruby backend/script/benchmark.rb`.
+
+**All three, one after another, from the repository root** — the first two are fast and need nothing running; the
+third (e2e) needs Docker and a couple of minutes to build and seed the image, so it is last:
+
+```bash
+cd backend  && bin/rails test && bin/rubocop && bin/brakeman
+cd ../frontend && npm test && npm run lint && npm run build
+cd .. && docker build -t salary-management:local .
+docker network create sm-net
+docker run -d --name sm-pg --network sm-net -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=salary_management postgres:17
+docker run -d --name sm-app --network sm-net -p 8080:3000 \
+  -e DATABASE_URL=postgres://postgres:postgres@sm-pg:5432/salary_management -e SECRET_KEY_BASE=$(openssl rand -hex 64) \
+  -e HR_EMAIL=hr@acme.example -e HR_PASSWORD=e2e-password-123 \
+  -e ADMIN_EMAIL=admin@acme.example -e ADMIN_PASSWORD=e2e-admin-password-123 -e FORCE_SSL=false salary-management:local
+# wait for http://localhost:8080/up to answer, then:
+cd e2e && npm install && npx playwright install --with-deps chromium && npx playwright test
+```
+
+This is also exactly what CI runs on every push, as four separate jobs (`.github/workflows/ci.yml`), except CI does
+not run the e2e suite — it has no Docker-in-Docker step for it, so that one stays a manual/local check.
 
 ## Working test-first (TDD)
 
