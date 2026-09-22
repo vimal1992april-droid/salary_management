@@ -182,6 +182,39 @@ cd frontend && npm test && npm run lint && npm run build         # 155 tests in 
 The browser tests (two tests, the HR manager's critical path and the administrator's panel, run against the production image) are described in
 [e2e/README.md](e2e/README.md). To time every endpoint against a running server: `ruby backend/script/benchmark.rb`.
 
+## Working test-first (TDD)
+
+Every behaviour in this codebase was built the same way, and new work should follow it too (the full method is
+[implementation-plan.md §9](docs/implementation-plan.md#9-test-driven-development)):
+
+1. **Red** — write one small test that states the behaviour in plain words, run it, and read the failure: it must
+   fail for the reason you expect (a missing method, not a typo in the test itself).
+2. **Green** — write the least code that makes it pass, then run the *whole* suite, not just the new test: a change
+   that fixes one thing can quietly break another.
+3. **Commit at each stable point.** Where practical that is a `test:` commit ("... (red)") followed by a `feat:` or
+   `fix:` commit ("... (green)"), so the history shows the tests arriving before the code that satisfies them —
+   `git log --oneline` in this repository is full of these pairs.
+
+Running only the test you are working on, while writing it:
+
+```bash
+# backend (Minitest) — one file, or one test by its line number
+cd backend
+bin/rails test test/models/user_test.rb
+bin/rails test test/models/user_test.rb:12
+
+# frontend (Vitest) — one file or folder, watching it as you save (Ctrl-C to stop)
+cd frontend
+npx vitest src/features/insights
+```
+
+Before every commit, run the full gate the way CI does — a change is not green until all of this passes:
+
+```bash
+cd backend  && bin/rails test && bin/rubocop -a && bin/brakeman   # -a autocorrects what RuboCop safely can
+cd frontend && npm test && npm run lint && npm run build
+```
+
 ## Repository layout
 
 ```
