@@ -1,4 +1,5 @@
 import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
 import Grid from '@mui/material/Grid'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -31,8 +32,10 @@ export default function OverviewCards() {
   const data = overview.data
   const show = (value: string) => (data ? value : '…')
 
+  // One box, so this is a single item wherever it is placed (InsightsPage lays its sections out in a CSS grid):
+  // the note below the cards stays this component's own caption, not a sibling the grid gives its own full gap to.
   return (
-    <>
+    <Box>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card label="Headcount" value={show(formatNumber(data?.headcount ?? 0))} />
@@ -48,8 +51,8 @@ export default function OverviewCards() {
         </Grid>
       </Grid>
       {data && (
-        <>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+        <Box sx={{ mt: 1.5 }}>
+          <Typography variant="body2" color="text.secondary">
             Active employees in {data.countries} countries and {data.departments} departments.
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -57,8 +60,8 @@ export default function OverviewCards() {
               ? `Amounts are in USD, converted at exchange rates as of ${formatDate(data.rates_as_of)}.`
               : 'Amounts are in USD.'}
           </Typography>
-        </>
+        </Box>
       )}
-    </>
+    </Box>
   )
 }
