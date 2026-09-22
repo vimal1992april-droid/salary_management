@@ -4,12 +4,19 @@ Web-based salary management for an organisation with **10,000 employees across m
 the HR team's Excel files: the HR Manager can find and maintain salary data, and answer questions about
 **how the organisation pays its people**.
 
-> **Status: built and tested end to end.** The Rails API, the React app, the Docker image and the deployment
-> blueprint are done and were checked with a real browser against the production image. Still to do by the owner:
-> deploy it (see [docs/deployment.md](docs/deployment.md)) and record the demo video.
+> **Status: built, tested and deployed.** The Rails API, the React app, the Docker image and the Render deployment
+> are all live and were checked with a real browser against the production image. Still to do by the owner: record
+> the demo video.
 
-- **Live demo:** _not deployed yet_ (needs a Render account; the blueprint is ready)
-- **Logins:** HR manager and administrator, see [Signing in](#signing-in)
+- **Live demo:** https://salary-management-bnkn.onrender.com ([docs/deployment.md](docs/deployment.md) — Render, free plan: the first request after a period of inactivity wakes the service and can take a little while)
+- **Logins:**
+
+  | | HR manager | Administrator |
+  |---|---|---|
+  | Email | `hr@acme.example` | `admin@acme.example` |
+  | Password | `salary-manager-demo` | `admin-panel-demo` |
+
+  (demo data only — see [Signing in](#signing-in) for how logins work locally and in Docker)
 - **Demo video:** _not recorded yet_
 
 | Directory | Insights |

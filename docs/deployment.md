@@ -63,6 +63,8 @@ a real browser (see [e2e/README.md](../e2e/README.md)):
   shell being cached for a year by the static file server, `bin/start-production` having gained Windows line endings
   so the container exited at once, and the admin's Sign out button doing nothing in a real browser).
 
-**Not verified:** an actual deploy to Render (or any host), because that needs an account; the `render.yaml` blueprint
-has therefore not been run. The image and start command are the same ones exercised locally, so the likely surprises
-are host settings rather than the app, for example the plan's limits or how the host injects `PORT`.
+**Verified on Render itself, from the `render.yaml` blueprint:** https://salary-management-bnkn.onrender.com is live —
+the free-plan Postgres database and web service, built from the Dockerfile exactly as described above, with no
+changes needed to the image or the start command. The only surprise was host-specific, not app-specific: the free
+plan's idle spin-down, which makes the first request after a quiet period slow while the service wakes and Puma
+boots (documented above).
