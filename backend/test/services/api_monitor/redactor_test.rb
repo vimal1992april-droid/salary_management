@@ -69,6 +69,14 @@ class ApiMonitor::RedactorTest < ActiveSupport::TestCase
     assert_equal "[unknown type, 3 bytes, not recorded]", redact("abc", content_type: nil).text
   end
 
+  test "does not record a form body whose keys cannot agree on being a list or a hash" do
+    body = "foo[]=1&foo[bar]=2"
+
+    result = redact(body, content_type: "application/x-www-form-urlencoded")
+
+    assert_equal "[unreadable form, #{body.bytesize} bytes, not recorded]", result.text
+  end
+
   test "cuts a long body short and says so, without splitting a character" do
     body = { names: [ "é" * 300 ] }.to_json
 
@@ -103,5 +111,9 @@ class ApiMonitor::RedactorTest < ActiveSupport::TestCase
   test "an empty query string is nothing" do
     assert_nil ApiMonitor::Redactor.query_string("")
     assert_nil ApiMonitor::Redactor.query_string(nil)
+  end
+
+  test "a query string whose keys cannot agree on being a list or a hash is reported, not parsed" do
+    assert_equal "[unreadable query string]", ApiMonitor::Redactor.query_string("foo[]=1&foo[bar]=2")
   end
 end
