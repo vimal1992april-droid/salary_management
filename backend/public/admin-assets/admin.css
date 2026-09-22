@@ -198,11 +198,11 @@ strong { font-weight: 650; }
 .account-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #7d89ba; }
 .account-email { font-size: 12.5px; font-weight: 600; color: var(--sidebar-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account form { grid-column: 1 / -1; margin: 6px 0 0; }
-.signout {
-  width: 100%; justify-content: center; gap: 8px; height: 34px; border-radius: 9px; border: 1px solid var(--sidebar-line);
+.account .signout {
+  width: 100%; height: 34px; justify-content: center; gap: 8px; border-radius: 9px; border: 1px solid var(--sidebar-line);
   background: transparent; color: var(--sidebar-text); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
 }
-.signout:hover { background: var(--sidebar-active); color: var(--sidebar-strong); }
+.account .signout:hover { background: var(--sidebar-active); color: var(--sidebar-strong); border-color: var(--sidebar-line); }
 
 .content { min-width: 0; display: flex; flex-direction: column; }
 
@@ -212,7 +212,7 @@ strong { font-weight: 650; }
 }
 .topbar-title { font-weight: 650; color: var(--muted); }
 .spacer { flex: 1; }
-.menu-button { display: none; }
+.topbar .menu-button { display: none; }
 
 .icon-button {
   display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; border-radius: 10px;
@@ -390,7 +390,7 @@ pre.payload {
   .sidebar-backdrop { position: fixed; inset: 0; z-index: 50; background: rgb(8 12 32 / 55%); }
   .with-sidebar.sidebar-open .sidebar-backdrop { display: block; }
   .with-sidebar.sidebar-open { overflow: hidden; }
-  .menu-button { display: inline-flex; }
+  .topbar .menu-button { display: inline-flex; }
   .topbar { padding: 0 16px; }
   .page { padding: 20px 16px; }
   .charts { grid-template-columns: 1fr; }
