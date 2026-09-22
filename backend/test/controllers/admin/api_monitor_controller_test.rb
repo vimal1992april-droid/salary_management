@@ -60,6 +60,25 @@ class Admin::ApiMonitorControllerTest < ActionDispatch::IntegrationTest
     assert_select ".kpi", text: /95th percentile/
   end
 
+  test "each number has an icon, and server errors turns to a warning colour once there are any" do
+    call(status: 500)
+
+    get admin_api_monitor_url
+
+    assert_select ".kpi", count: 5 do
+      assert_select ".kpi-icon svg.icon", 1
+    end
+    assert_select ".kpi:has(.kpi-label:contains('Server errors')) .kpi-icon.bad"
+  end
+
+  test "no server errors is a calmer icon, not a warning colour" do
+    call(status: 200)
+
+    get admin_api_monitor_url
+
+    assert_select ".kpi:has(.kpi-label:contains('Server errors')) .kpi-icon.bad", 0
+  end
+
   test "draws the calls of each hour and how their statuses divide" do
     call(status: 200)
     call(status: 500)

@@ -23,6 +23,14 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select ".kpi", text: /Payroll.*300,000/m
   end
 
+  test "each headline number has an icon" do
+    get admin_root_url
+
+    assert_select ".kpi", count: 7 do
+      assert_select ".kpi-icon svg.icon", 1
+    end
+  end
+
   test "draws the charts" do
     paid(100_000)
 
