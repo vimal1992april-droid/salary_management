@@ -58,6 +58,12 @@ module AdminHelper
     text
   end
 
+  # The small coloured icon in the corner of a .kpi card. `variant` picks the colour (nil is the brand colour);
+  # ok/info/warn/bad are the others the stylesheet defines.
+  def kpi_icon(icon, variant: nil)
+    tag.div(admin_icon(icon), class: [ "kpi-icon", variant ].compact.join(" "))
+  end
+
   def row_count(total)
     "#{number_with_delimiter(total)} #{'row'.pluralize(total)}"
   end

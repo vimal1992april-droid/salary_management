@@ -5,36 +5,43 @@
 
 <div class="kpis">
   <div class="kpi">
+    <%= kpi_icon :users %>
     <div class="kpi-label">Employees</div>
     <div class="kpi-value"><%= number_with_delimiter(counts[:employees]) %></div>
     <div class="kpi-note"><%= number_with_delimiter(counts[:active_employees]) %> active &middot; <%= number_with_delimiter(counts[:inactive_employees]) %> inactive <%= link_to "Data", admin_table_path("employees") %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :dollar, variant: "ok" %>
     <div class="kpi-label">Payroll (USD)</div>
     <div class="kpi-value"><%= usd_figure(overview[:payroll_usd]) %></div>
     <div class="kpi-note">Annual, active employees</div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :trending, variant: "ok" %>
     <div class="kpi-label">Average salary (USD)</div>
     <div class="kpi-value"><%= usd_figure(overview[:average_salary_usd]) %></div>
     <div class="kpi-note">Median <%= usd_figure(overview[:median_salary_usd]) %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :briefcase %>
     <div class="kpi-label">Departments</div>
     <div class="kpi-value"><%= number_with_delimiter(counts[:departments]) %></div>
     <div class="kpi-note"><%= number_with_delimiter(counts[:job_titles]) %> job titles <%= link_to "Data", admin_table_path("departments") %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :globe %>
     <div class="kpi-label">Countries</div>
     <div class="kpi-value"><%= number_with_delimiter(counts[:countries]) %></div>
     <div class="kpi-note"><%= link_to "Data", admin_table_path("countries") %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :activity, variant: "info" %>
     <div class="kpi-label">Salary changes</div>
     <div class="kpi-value"><%= number_with_delimiter(counts[:salary_changes]) %></div>
     <div class="kpi-note">All time <%= link_to "Data", admin_table_path("salary_changes") %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :key %>
     <div class="kpi-label">Users</div>
     <div class="kpi-value"><%= number_with_delimiter(counts[:users]) %></div>
     <div class="kpi-note"><%= counts[:admins] %> admin &middot; <%= counts[:sessions] %> signed in <%= link_to "Data", admin_table_path("users") %></div>

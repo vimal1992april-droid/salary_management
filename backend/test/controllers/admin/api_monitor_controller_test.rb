@@ -65,9 +65,9 @@ class Admin::ApiMonitorControllerTest < ActionDispatch::IntegrationTest
 
     get admin_api_monitor_url
 
-    assert_select ".kpi", count: 5 do
-      assert_select ".kpi-icon svg.icon", 1
-    end
+    kpis = css_select(".kpi")
+    assert_equal 5, kpis.size
+    kpis.each { |kpi| assert_equal 1, kpi.css(".kpi-icon svg.icon").size }
     assert_select ".kpi:has(.kpi-label:contains('Server errors')) .kpi-icon.bad"
   end
 

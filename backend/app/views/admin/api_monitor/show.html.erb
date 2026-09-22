@@ -23,26 +23,31 @@
 
 <div class="kpis">
   <div class="kpi">
+    <%= kpi_icon :activity %>
     <div class="kpi-label">Calls (24 h)</div>
     <div class="kpi-value"><%= number_with_delimiter(summary.total) %></div>
     <div class="kpi-note"><%= link_to "See the calls", admin_api_requests_path %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :alert, variant: (summary.server_errors.positive? ? "bad" : "ok") %>
     <div class="kpi-label">Server errors</div>
     <div class="kpi-value"><%= number_with_precision(summary.server_error_percent, precision: 1) %>%</div>
     <div class="kpi-note"><%= pluralize(summary.server_errors, "call") %> answered 5xx <%= link_to "Show", admin_api_requests_path(status: "5xx") if summary.server_errors.positive? %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :alert, variant: (summary.client_errors.positive? ? "warn" : "ok") %>
     <div class="kpi-label">Client errors</div>
     <div class="kpi-value"><%= number_with_delimiter(summary.client_errors) %></div>
     <div class="kpi-note">4xx: refused, not found, invalid <%= link_to "Show", admin_api_requests_path(status: "4xx") if summary.client_errors.positive? %></div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :clock, variant: "info" %>
     <div class="kpi-label">Average time</div>
     <div class="kpi-value"><%= milliseconds(summary.average_ms) %></div>
     <div class="kpi-note">to answer a call</div>
   </div>
   <div class="kpi">
+    <%= kpi_icon :trending, variant: "info" %>
     <div class="kpi-label">95th percentile</div>
     <div class="kpi-value"><%= milliseconds(summary.p95_ms) %></div>
     <div class="kpi-note">19 in 20 calls are faster</div>

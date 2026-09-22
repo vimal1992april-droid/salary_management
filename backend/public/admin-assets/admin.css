@@ -402,8 +402,9 @@ pre.payload {
   h1 { font-size: 21px; }
   .kpis { grid-template-columns: 1fr 1fr; gap: 12px; }
   .kpi-value { font-size: 22px; }
-  .kpi-icon { display: none; }
-  .kpi-label { padding-right: 0; }
+  .kpi-icon { width: 26px; height: 26px; top: 12px; right: 12px; }
+  .kpi-icon .icon { width: 14px; height: 14px; }
+  .kpi-label { padding-right: 34px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

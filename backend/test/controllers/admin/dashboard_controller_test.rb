@@ -26,9 +26,9 @@ class Admin::DashboardControllerTest < ActionDispatch::IntegrationTest
   test "each headline number has an icon" do
     get admin_root_url
 
-    assert_select ".kpi", count: 7 do
-      assert_select ".kpi-icon svg.icon", 1
-    end
+    kpis = css_select(".kpi")
+    assert_equal 7, kpis.size
+    kpis.each { |kpi| assert_equal 1, kpi.css(".kpi-icon svg.icon").size }
   end
 
   test "draws the charts" do
