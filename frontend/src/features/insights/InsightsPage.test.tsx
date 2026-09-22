@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { HttpResponse } from 'msw'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { mockInsights, renderApp, signedIn } from '../../test/helpers'
+import { overview } from '../../test/insightsFixtures'
 
 const failing = () => new HttpResponse(null, { status: 500 })
 
@@ -49,6 +50,15 @@ describe('the insights dashboard', () => {
 
       expect(await screen.findByText('Could not load the overview: Request failed (500)')).toBeInTheDocument()
       expect(await screen.findByRole('heading', { name: 'Pay by country' })).toBeInTheDocument()
+    })
+
+    it('says amounts are in USD with no conversion note, when the API gives no exchange-rate date', async () => {
+      mockInsights({ overview: () => HttpResponse.json({ data: { ...overview, rates_as_of: null } }) })
+
+      await renderInsights()
+
+      expect(await screen.findByText('Amounts are in USD.')).toBeInTheDocument()
+      expect(screen.queryByText(/converted at exchange rates/)).not.toBeInTheDocument()
     })
   })
 
@@ -121,12 +131,17 @@ describe('the insights dashboard', () => {
       expect(within(rows[1]).getByText('2,411')).toBeInTheDocument()
     })
 
-    it('reports a failure to load it', async () => {
-      mockInsights({ distribution: failing })
+    it('reports a failure to load it, and tries again on request', async () => {
+      let failingNow = true
+      mockInsights({ distribution: () => (failingNow ? failing() : HttpResponse.json({ data: [] })) })
+      const user = userEvent.setup()
 
       await renderInsights()
 
       expect(await screen.findByText('Could not load the salary distribution: Request failed (500)')).toBeInTheDocument()
+      failingNow = false
+      await user.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText('No active employees to report on.')).toBeInTheDocument()
     })
   })
 
@@ -157,12 +172,17 @@ describe('the insights dashboard', () => {
       expect(requests.some((url) => url.searchParams.get('direction') === 'asc')).toBe(true)
     })
 
-    it('reports a failure to load', async () => {
-      mockInsights({ topEarners: failing })
+    it('reports a failure to load, and tries again on request', async () => {
+      let failingNow = true
+      mockInsights({ topEarners: () => (failingNow ? failing() : HttpResponse.json({ data: [] })) })
+      const user = userEvent.setup()
 
       await renderInsights()
 
       expect(await screen.findByText('Could not load the top earners: Request failed (500)')).toBeInTheDocument()
+      failingNow = false
+      await user.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByRole('table', { name: 'Highest paid' })).toBeInTheDocument()
     })
   })
 
@@ -203,12 +223,17 @@ describe('the insights dashboard', () => {
       expect(await screen.findByText("Nobody is paid outside their peer group's range.")).toBeInTheDocument()
     })
 
-    it('reports a failure to load', async () => {
-      mockInsights({ outliers: failing })
+    it('reports a failure to load, and tries again on request', async () => {
+      let failingNow = true
+      mockInsights({ outliers: () => (failingNow ? failing() : HttpResponse.json({ data: [] })) })
+      const user = userEvent.setup()
 
       await renderInsights()
 
       expect(await screen.findByText('Could not load the outliers: Request failed (500)')).toBeInTheDocument()
+      failingNow = false
+      await user.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText("Nobody is paid outside their peer group's range.")).toBeInTheDocument()
     })
   })
 })
