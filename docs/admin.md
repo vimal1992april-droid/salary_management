@@ -9,6 +9,21 @@ build and nothing to keep in step with the React app.
 
 ![The dashboard](screenshots/admin-dashboard.png)
 
+## Look and feel
+
+A fixed sidebar grouped into Overview, Data (every table listed) and Monitoring, a
+light and a dark theme (a click remembers the choice; with nothing saved it follows
+the system, and the right one is applied before the page is drawn, so it never
+flashes the other), and a drawer instead of the sidebar under 960px wide. The whole
+panel is set in **Montserrat**, self-hosted (`public/admin-assets/fonts`, SIL Open
+Font License) so it asks nothing of any other site. The stylesheet and script are one
+file each, their address carrying a version taken from their own content so a deploy
+is never left showing a cached one.
+
+| Dark theme | Small screen |
+|---|---|
+| ![The dashboard in the dark theme](screenshots/admin-dashboard-dark.png) | ![The dashboard on a narrow screen, sidebar closed](screenshots/admin-mobile.png) |
+
 ## Signing in
 
 | | |
